@@ -363,6 +363,7 @@ public:
     void add_metric(const occ_sensor_t& sensor)
     {
         check_fatal();
+        logging::debug() << "adding sensor for recording: " << sensor.name;
 
         // we just got notified that the given sensor will be recorded
         // -> init an empty buffer for it
@@ -439,6 +440,11 @@ public:
 
         if (running) {
             fatal("can't extract values while plugin is running, will produce duplicate data points");
+        }
+
+        if (value_buffers_by_sensor.find(sensor) == value_buffers_by_sensor.end()) {
+            logging::error() << "sensor not recorded: " << sensor.name;
+            throw std::runtime_error("unkown sensor requested");
         }
 
         if (times_.size() != value_buffers_by_sensor.at(sensor).size()) {
