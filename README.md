@@ -4,9 +4,8 @@ This plugin tracks the power consumption of a Power 9-system.
 ## Usage
 ### Environment Variables
 - `SCOREP_METRIC_PLUGINS=ibmpowernv_plugin`
-- `SCOREP_METRIC_MEMINFO_PLUGIN` (required)
-    Comma-separated list of values to test for.
-    Can also contain regular expressions (`.*`)
+- `SCOREP_METRIC_IBMPOWERNV_PLUGIN` (required)
+    regex for metrics to be collected (TODO allow comma-separated list)
 - `SCOREP_METRIC_IBMPOWERNV_PLUGIN_INTERVAL` (optional, default: 10ms)
     Interval of testing.
     The value is a duration string which will be parsed, e.g. `100ms`.
