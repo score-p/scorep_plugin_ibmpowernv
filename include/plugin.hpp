@@ -334,8 +334,10 @@ public:
 
         occ_file_fd = open(scorep::environment_variable::get("OCC_FILENAME", "/sys/firmware/opal/exports/occ_inband_sensors").c_str(), O_RDONLY);
         if (occ_file_fd < 0) {
-            fatal("could not read sensor file");
+            fatal("could not open sensor file");
         }
+
+        logging::info() << "ibmpowernv plugin constructed";
     }
 
     std::vector<scorep::plugin::metric_property> get_metric_properties(const std::string& pattern)
@@ -345,10 +347,13 @@ public:
         std::vector<scorep::plugin::metric_property> result;
         std::regex search_regex(pattern);
 
+        logging::debug() << "adding sensors for pattern \"" << pattern << "\"";
+
         // iterate over all sensors
         for (const auto it : occ_sensor_t::metric_properties_by_sensor) {
             if (regex_match(it.second.name, search_regex)) {
                 result.push_back(it.second);
+                logging::trace() << "added sensor " << it.second.description;
             }
         }
 
@@ -482,11 +487,14 @@ private:
     /// seeks sensors file & copies it into given buffer
     void read_file_into_buffer(void* buf) {
         // read data from file to buffer
-        lseek(occ_file_fd, chipid * OCC_SENSOR_DATA_BLOCK_SIZE, SEEK_CUR);
+        lseek(occ_file_fd, chipid * OCC_SENSOR_DATA_BLOCK_SIZE, SEEK_SET);
         int rc, bytes;
         for (bytes = 0; bytes < OCC_SENSOR_DATA_BLOCK_SIZE; bytes += rc) {
-            rc = read(occ_file_fd, buf + bytes, OCC_SENSOR_DATA_BLOCK_SIZE - bytes);
-            if (!rc || rc < 0) {
+            rc = read(occ_file_fd, (int8_t*) buf + bytes, OCC_SENSOR_DATA_BLOCK_SIZE - bytes);
+            if (0 == rc) {
+                fatal("read syscall on occ_sensors file returned 0 bytes");
+            }
+            if (rc < 0) {
                 fatal("failed to read from occ_sensors_file");
             }
         }
