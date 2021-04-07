@@ -352,6 +352,7 @@ public:
         // iterate over all sensors
         for (const auto it : occ_sensor_t::metric_properties_by_sensor) {
             if (regex_match(it.second.name, search_regex)) {
+                make_handle(it.second.name, it.first.name, it.first.acc);
                 result.push_back(it.second);
                 logging::trace() << "added sensor " << it.second.description;
             }
