@@ -16,15 +16,6 @@ std::map<std::string, std::set<occ_sensor_t>> get_sensors_by_occid(const std::se
     return m;
 }
 
-uint64_t get_sample(struct occ_sensor_data_header* header_buffer, struct occ_sensor_name* md) {
-    uint32_t offset = be32toh(md->reading_offset);
-    if (md->structure_type == OCC_SENSOR_READING_FULL) {
-        return read_occ_sensor(header_buffer, offset, SENSOR_SAMPLE);
-    } else {
-        return read_occ_counter(header_buffer, offset);
-    }
-}
-
 std::map<occ_sensor_t, double> get_sensor_values(void* buf, const std::set<occ_sensor_t>& requested_sensors) {
     std::map<occ_sensor_t, double> values_by_sensor;
     auto sensors_by_occid = get_sensors_by_occid(requested_sensors);

@@ -2,6 +2,7 @@
 #define __SCOREP_IBMPOWERNV_PLUGIN_OCC_HPP_INCLUDED__
 
 #include <cstdint>
+#include <endian.h>
 
 #define MAX_OCCS			8
 #define MAX_CHARS_SENSOR_NAME		16
@@ -117,11 +118,54 @@ unsigned long read_occ_sensor(struct occ_sensor_data_header *hb, uint32_t offset
 unsigned long read_occ_counter(struct occ_sensor_data_header *hb, uint32_t offset);
 
 /**
+ * extract sample with given name struct from given buffer.
+ * automatically selects if read_occ_sensor or read_occ_counter should be used.
+ * @param header_buffer buffer to be read
+ * @param md name struct for the desired sensor
+ * @return sensor value NOT YET SCALED
+ */
+uint64_t get_sample(struct occ_sensor_data_header* header_buffer, struct occ_sensor_name* md);
+
+/**
  * convert occ-internal format to FP value.
  * used to convert the scaling factors
  * @param f raw value from occ
  * @return interpreted number
  */
 double get_occ_scale_as_fp(uint32_t f);
+
+/**
+ * get the address of the sensor at the given offset,
+ * selects active ping/pong buffer
+ * @param hb buffer to read from
+ * @param offset desired offset to read
+ * @return ptr to buffer at desired offset; nullptr if no buffer is valid
+ */
+template <typename T>
+T *get_sensor_addr(struct occ_sensor_data_header *hb, uint32_t offset) {
+	T *sping, *spong;
+	uint8_t *ping, *pong;
+
+	ping = (uint8_t *)((uint64_t)hb + be32toh(hb->reading_ping_offset));
+	pong = (uint8_t *)((uint64_t)hb + be32toh(hb->reading_pong_offset));
+	sping = (T *)((uint64_t)ping + offset);
+	spong = (T *)((uint64_t)pong + offset);
+
+	if (*ping && *pong) {
+        // both valid -> pick newer
+		if (be64toh(sping->timestamp) > be64toh(spong->timestamp)) {
+			return sping;
+        } else {
+			return spong;
+        }
+	} else if (*ping && !*pong) {
+		return sping;
+	} else if (!*ping && *pong) {
+		return spong;
+	}
+
+    // if no buffer was valid: still nullptr
+    return nullptr;
+}
 
 #endif // __SCOREP_IBMPOWERNV_PLUGIN_OCC_HPP_INCLUDED__
