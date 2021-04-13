@@ -10,6 +10,12 @@ add_subdirectory(lib/scorep_plugin_cxx_wrapper)
 add_library(ibmpowernv_plugin MODULE
     src/plugin.cpp
     include/plugin.hpp
+    src/occ_sensor_t.cpp
+    include/occ_sensor_t.hpp
+    src/occ.cpp
+    include/occ.hpp
+    src/occ_util.cpp
+    include/occ_util.hpp
 )
 target_include_directories(ibmpowernv_plugin PUBLIC include)
 target_compile_features(ibmpowernv_plugin PUBLIC cxx_std_17)
