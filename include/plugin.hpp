@@ -42,7 +42,7 @@ public:
     
     ibmpowernv_plugin()
     {
-        sampling_interval = get_ns_from_str(scorep::environment_variable::get("INTERVAL", "10ms"), std::chrono::milliseconds(10));
+        sampling_interval = get_ns_from_str(scorep::environment_variable::get("INTERVAL", "10ms"));
 
         occ_file_fd = open(scorep::environment_variable::get("OCC_FILENAME", "/sys/firmware/opal/exports/occ_inband_sensors").c_str(), O_RDONLY);
         if (occ_file_fd < 0) {

@@ -16,6 +16,8 @@ add_library(ibmpowernv_plugin MODULE
     include/occ.hpp
     src/occ_util.cpp
     include/occ_util.hpp
+    src/util.cpp
+    include/util.hpp
 )
 target_include_directories(ibmpowernv_plugin PUBLIC include)
 target_compile_features(ibmpowernv_plugin PUBLIC cxx_std_17)

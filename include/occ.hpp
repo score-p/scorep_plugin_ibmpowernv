@@ -164,7 +164,7 @@ T *get_sensor_addr(struct occ_sensor_data_header *hb, uint32_t offset) {
 		return spong;
 	}
 
-    // if no buffer was valid: still nullptr
+    // no buffer valid
     return nullptr;
 }
 
