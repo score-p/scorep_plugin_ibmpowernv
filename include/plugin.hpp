@@ -57,17 +57,38 @@ public:
         check_fatal();
 
         std::vector<scorep::plugin::metric_property> result;
-        std::regex search_regex(pattern);
 
         logging::debug() << "adding sensors for pattern \"" << pattern << "\"";
 
-        // iterate over all sensors
-        for (const auto it : occ_sensor_t::metric_properties_by_sensor) {
-            if (regex_match(it.second.name, search_regex)) {
+        if ("*" == pattern) {
+            // return all metrics
+            for (const auto& it : occ_sensor_t::metric_properties_by_sensor) {
                 make_handle(it.second.name, it.first.name, it.first.acc);
                 result.push_back(it.second);
-                logging::trace() << "added sensor " << it.second.description;
             }
+            return result;
+        }
+
+        // create map: metric name -> sensor object (which will in turn be mapped to a metric object)
+        // Note: I would love to be the value type a metric_property directly, BUT THE WRAPPER IS NOT SPECIFIED TO SUPPORT THAT
+        std::map<std::string, occ_sensor_t> occ_sensors_by_name;
+        for (const auto& it : occ_sensor_t::metric_properties_by_sensor) {
+            occ_sensors_by_name[it.second.name] = it.first;
+        }
+
+        // iterate over items in comma-seperated list
+        std::stringstream comma_separated_list(pattern);
+        std::string list_entry;
+        while(std::getline(comma_separated_list, list_entry, ',')) {
+            if (occ_sensors_by_name.find(list_entry) == occ_sensors_by_name.end()) {
+                logging::error() << "unkown metric: " << list_entry;
+                continue;
+            }
+            
+            auto occ_sensor = occ_sensors_by_name.at(list_entry);
+            auto metric_property = occ_sensor_t::metric_properties_by_sensor.at(occ_sensor);
+            make_handle(metric_property.name, occ_sensor.name, occ_sensor.acc);
+            result.push_back(metric_property);
         }
 
         return result;

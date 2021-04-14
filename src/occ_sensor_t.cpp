@@ -6,6 +6,9 @@
 #include <map>
 
 const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metric_properties_by_sensor = {
+    // structure:
+    // OCC-string identifier, bool whether to use accumulator or not
+    // name for metric in trace, description, unit
     {
         {"PWRSYS", false},
         scorep::plugin::metric_property("occ_power_system", "power intake of the entire system", "W")

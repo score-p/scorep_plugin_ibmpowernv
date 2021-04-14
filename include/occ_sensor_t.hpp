@@ -11,6 +11,7 @@
 /// contains all information required to locate a sensor and grab its value
 struct occ_sensor_t {
     occ_sensor_t(const std::string& name, const bool acc) : name(name), acc(acc) {}
+    occ_sensor_t() {}
 
     /// name as used in occ_inband_sensors (e.g. PWRSYS)
     std::string name;
@@ -20,6 +21,7 @@ struct occ_sensor_t {
     /// metric properties for all supported sensors
     static const std::map<occ_sensor_t, scorep::plugin::metric_property> metric_properties_by_sensor;
 };
+typedef struct occ_sensor_t occ_sensor_t;
 
 
 bool operator<(const occ_sensor_t& lhs, const occ_sensor_t& rhs); 

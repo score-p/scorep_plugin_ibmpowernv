@@ -17,6 +17,8 @@ Provided your built `libibmpowernv_plugin.so` is in the current directory and yo
 ```
 LD_LIBRARY_PATH=.:$LD_LIBRARY_PATH SCOREP_METRIC_PLUGINS=ibmpowernv_plugin SCOREP_METRIC_IBMPOWERNV_PLUGIN='*' SCOREP_METRIC_IBMPOWERNV_PLUGIN_OCC_FILENAME=./occ_inband_sensors_20210301T090454Z SCOREP_METRIC_IBMPOWERNV_PLUGIN_INTERVAL="0.1s"  lo2s -v -- sleep 1
 ```
+
+(expected: `occ_power_system` always reads 471 W, `occ_power_system_acc` always 5415690.465 J)
     
 ## Acknowledgements
 Copied structure of the source from [the meminfo Score-P plugin](https://github.com/score-p/scorep_plugin_meminfo).
