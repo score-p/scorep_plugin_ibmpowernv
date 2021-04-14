@@ -24,3 +24,5 @@ LD_LIBRARY_PATH=.:$LD_LIBRARY_PATH SCOREP_METRIC_PLUGINS=ibmpowernv_plugin SCORE
 Copied structure of the source from [the meminfo Score-P plugin](https://github.com/score-p/scorep_plugin_meminfo).
 
 Copied and adjusted code to read the sensors from [here](https://github.com/shilpasri/inband_sensors/blob/master/p9_inband_sensors.c).
+
+Used function for time parsing from [metricq](https://github.com/metricq/metricq-cpp/blob/30bfccd61cff163885c4625c1fe810255ca95a11/src/chrono.cpp#L84-L130).
