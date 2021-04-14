@@ -1,21 +1,21 @@
 // Copyright (C) 2021 Technische Universität Dresden, Germany
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
-// 
+//
 // (1) Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer. 
-// 
+// notice, this list of conditions and the following disclaimer.
+//
 // (2) Redistributions in binary form must reproduce the above copyright
 // notice, this list of conditions and the following disclaimer in
 // the documentation and/or other materials provided with the
-// distribution.  
-// 
+// distribution.
+//
 // (3)The name of the author may not be used to
 // endorse or promote products derived from this software without
 // specific prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
 // IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -26,21 +26,24 @@
 // HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
 // IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-// POSSIBILITY OF SUCH DAMAGE. 
+// POSSIBILITY OF SUCH DAMAGE.
 #ifndef __SCOREP_IBMPOWERNV_PLUGIN_OCC_SENSOR_T_HPP_INCLUDED__
 #define __SCOREP_IBMPOWERNV_PLUGIN_OCC_SENSOR_T_HPP_INCLUDED__
 
-#include <string>
 #include <map>
+#include <string>
 
-#include <scorep/plugin/plugin.hpp>
 #include <scorep/SCOREP_MetricTypes.h>
-
+#include <scorep/plugin/plugin.hpp>
 
 /// contains all information required to locate a sensor and grab its value
 struct occ_sensor_t {
-    occ_sensor_t(const std::string& name, const bool acc) : name(name), acc(acc) {}
-    occ_sensor_t() {}
+    occ_sensor_t(const std::string& name, const bool acc) : name(name), acc(acc)
+    {
+    }
+    occ_sensor_t()
+    {
+    }
 
     /// name as used in occ_inband_sensors (e.g. PWRSYS)
     std::string name;
@@ -52,8 +55,7 @@ struct occ_sensor_t {
 };
 typedef struct occ_sensor_t occ_sensor_t;
 
-
-bool operator<(const occ_sensor_t& lhs, const occ_sensor_t& rhs); 
+bool operator<(const occ_sensor_t& lhs, const occ_sensor_t& rhs);
 
 template <typename T, typename Policies>
 using occ_sensor_policy = scorep::plugin::policy::object_id<occ_sensor_t, T, Policies>;

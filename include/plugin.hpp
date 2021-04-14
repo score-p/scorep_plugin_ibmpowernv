@@ -1,21 +1,21 @@
 // Copyright (C) 2021 Technische Universität Dresden, Germany
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
-// 
+//
 // (1) Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer. 
-// 
+// notice, this list of conditions and the following disclaimer.
+//
 // (2) Redistributions in binary form must reproduce the above copyright
 // notice, this list of conditions and the following disclaimer in
 // the documentation and/or other materials provided with the
-// distribution.  
-// 
+// distribution.
+//
 // (3)The name of the author may not be used to
 // endorse or promote products derived from this software without
 // specific prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
 // IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -26,8 +26,11 @@
 // HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
 // IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-// POSSIBILITY OF SUCH DAMAGE. 
+// POSSIBILITY OF SUCH DAMAGE.
 #include <atomic>
+#include <cstdint>
+#include <cstdlib>
+#include <fcntl.h>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -37,20 +40,17 @@
 #include <regex>
 #include <set>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <thread>
-#include <vector>
-#include <stdexcept>
-#include <cstdlib>
-#include <cstdint>
 #include <unistd.h>
-#include <fcntl.h>
+#include <vector>
 
 #include <scorep/SCOREP_MetricTypes.h>
 #include <scorep/plugin/plugin.hpp>
 
-#include <occ_sensor_t.hpp>
 #include <occ.hpp>
+#include <occ_sensor_t.hpp>
 #include <occ_util.hpp>
 #include <util.hpp>
 
@@ -58,22 +58,27 @@
 
 using scorep::plugin::log::logging;
 
-
-class ibmpowernv_plugin : public scorep::plugin::base<ibmpowernv_plugin,
-                                                      scorep::plugin::policy::async,
-                                                      scorep::plugin::policy::post_mortem,
-                                                      scorep::plugin::policy::scorep_clock,
-                                                      scorep::plugin::policy::per_host,
-                                                      occ_sensor_policy> {
+class ibmpowernv_plugin
+    : public scorep::plugin::base<ibmpowernv_plugin,
+                                  scorep::plugin::policy::async,
+                                  scorep::plugin::policy::post_mortem,
+                                  scorep::plugin::policy::scorep_clock,
+                                  scorep::plugin::policy::per_host,
+                                  occ_sensor_policy> {
 public:
     /// id of the chip to be used; testing suggests leaving it at 0 is best
     int chipid = 0;
-    
+
     ibmpowernv_plugin()
     {
-        sampling_interval = get_ns_from_str(scorep::environment_variable::get("INTERVAL", "10ms"));
+        sampling_interval = get_ns_from_str(
+            scorep::environment_variable::get("INTERVAL", "10ms"));
 
-        occ_file_fd = open(scorep::environment_variable::get("OCC_FILENAME", "/sys/firmware/opal/exports/occ_inband_sensors").c_str(), O_RDONLY);
+        occ_file_fd = open(
+            scorep::environment_variable::get(
+                "OCC_FILENAME", "/sys/firmware/opal/exports/occ_inband_sensors")
+                .c_str(),
+            O_RDONLY);
         if (occ_file_fd < 0) {
             fatal("could not open sensor file");
         }
@@ -108,12 +113,12 @@ public:
         // iterate over items in comma-seperated list
         std::stringstream comma_separated_list(pattern);
         std::string list_entry;
-        while(std::getline(comma_separated_list, list_entry, ',')) {
+        while (std::getline(comma_separated_list, list_entry, ',')) {
             if (occ_sensors_by_name.find(list_entry) == occ_sensors_by_name.end()) {
                 logging::error() << "unkown metric: " << list_entry;
                 continue;
             }
-            
+
             auto occ_sensor = occ_sensors_by_name.at(list_entry);
             auto metric_property = occ_sensor_t::metric_properties_by_sensor.at(occ_sensor);
             make_handle(metric_property.name, occ_sensor.name, occ_sensor.acc);
@@ -144,7 +149,8 @@ public:
         running = true;
         last_measurement_ = std::chrono::system_clock::now();
         collection_thread = std::thread([&]() { this->exec(); });
-        logging::info() << "started recording of " << value_buffers_by_sensor.size() << " sensors";
+        logging::info() << "started recording of "
+                        << value_buffers_by_sensor.size() << " sensors";
     }
 
     void stop()
@@ -162,7 +168,7 @@ public:
     void exec()
     {
         check_fatal();
-        
+
         std::shared_ptr<void> buf(new int8_t[OCC_SENSOR_DATA_BLOCK_SIZE]);
         if (nullptr == buf) {
             fatal("couldn't allocate buffer for occ sensor data");
@@ -170,11 +176,10 @@ public:
 
         // requested sensors: all keys that have been initialized (with an empty vector)
         std::set<occ_sensor_t> requested_sensors_set;
-        std::transform(value_buffers_by_sensor.begin(),
-                       value_buffers_by_sensor.end(),
-                       std::inserter(requested_sensors_set, requested_sensors_set.end()),
-                       [](auto pair){return pair.first;}
-                       );
+        std::transform(
+            value_buffers_by_sensor.begin(), value_buffers_by_sensor.end(),
+            std::inserter(requested_sensors_set, requested_sensors_set.end()),
+            [](auto pair) { return pair.first; });
 
         while (running) {
             check_fatal();
@@ -202,7 +207,9 @@ public:
         check_fatal();
 
         if (running) {
-            fatal("can't extract values while plugin is running, will produce duplicate data points");
+            fatal(
+                "can't extract values while plugin is running, will produce "
+                "duplicate data points");
         }
 
         if (value_buffers_by_sensor.find(sensor) == value_buffers_by_sensor.end()) {
@@ -211,10 +218,12 @@ public:
         }
 
         if (times_.size() != value_buffers_by_sensor.at(sensor).size()) {
-            logging::error() << "check failed: value not for each time point recorded";
-            throw std::runtime_error("can't associate recorded values -> time points");
+            logging::error()
+                << "check failed: value not for each time point recorded";
+            throw std::runtime_error(
+                "can't associate recorded values -> time points");
         }
-        
+
         // write buffered measurements for given sensor
         for (int i = 0; i < times_.size(); i++) {
             c.write(times_[i], value_buffers_by_sensor[sensor][i]);
@@ -233,33 +242,38 @@ private:
     /// interval at which the collection_thread should make measurements
     std::chrono::nanoseconds sampling_interval;
     /// TODO change type (WTF wall clock time?!)
-    std::chrono::system_clock::time_point last_measurement_ = std::chrono::system_clock::now();
+    std::chrono::system_clock::time_point last_measurement_ =
+        std::chrono::system_clock::now();
     /// file descriptor for the opened occ_inband_sensors file
     int occ_file_fd;
     /// recorded values for each sensor
     std::map<occ_sensor_t, std::vector<double>> value_buffers_by_sensor;
 
     /// throws if a fatal condition has occured
-    void check_fatal() {
+    void check_fatal()
+    {
         if (fatal_occured) {
-            logging::warn() << "OCC driver has been called, but a fatal error has occured";
+            logging::warn()
+                << "OCC driver has been called, but a fatal error has occured";
             throw std::logic_error("OCC driver called after fatal condition");
         }
     }
 
-    void fatal(const std::string msg) {
+    void fatal(const std::string msg)
+    {
         fatal_occured = true;
         logging::fatal() << "[!!] " << msg;
         throw std::runtime_error(msg);
     }
 
     /// seeks sensors file & copies it into given buffer
-    void read_file_into_buffer(void* buf) {
+    void read_file_into_buffer(void* buf)
+    {
         // read data from file to buffer
         lseek(occ_file_fd, chipid * OCC_SENSOR_DATA_BLOCK_SIZE, SEEK_SET);
         int rc, bytes;
         for (bytes = 0; bytes < OCC_SENSOR_DATA_BLOCK_SIZE; bytes += rc) {
-            rc = read(occ_file_fd, (int8_t*) buf + bytes, OCC_SENSOR_DATA_BLOCK_SIZE - bytes);
+            rc = read(occ_file_fd, (int8_t*)buf + bytes, OCC_SENSOR_DATA_BLOCK_SIZE - bytes);
             if (0 == rc) {
                 fatal("read syscall on occ_sensors file returned 0 bytes");
             }
@@ -270,7 +284,8 @@ private:
 
         // check if read successfull
         if (bytes != OCC_SENSOR_DATA_BLOCK_SIZE) {
-            fatal("read from occ_sensors_file finished, but did not read enough");
+            fatal(
+                "read from occ_sensors_file finished, but did not read enough");
         }
     }
 };
