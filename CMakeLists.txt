@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.15)
 project(scorep_plugin_ibmpowernv)
 
+# there are some weird quirks in the regex compilation when using shared libraries
+# on some system (including our test systems)
+# this prevents this
+add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0)
+
 set(NITRO_POSITION_INDEPENDENT_CODE ON CACHE INTERNAL "")
 
 find_package(Threads REQUIRED)
