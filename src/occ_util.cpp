@@ -46,9 +46,9 @@ std::map<std::string, std::set<occ_sensor_t>> get_sensors_by_occid(const std::se
     return m;
 }
 
-std::map<occ_sensor_t, double> get_sensor_values(void* buf, const std::set<occ_sensor_t>& requested_sensors)
+std::map<occ_sensor_t, uint64_t> get_sensor_values(void* buf, const std::set<occ_sensor_t>& requested_sensors)
 {
-    std::map<occ_sensor_t, double> values_by_sensor;
+    std::map<occ_sensor_t, uint64_t> values_by_sensor;
     auto sensors_by_occid = get_sensors_by_occid(requested_sensors);
 
     struct occ_sensor_data_header* hb = (struct occ_sensor_data_header*)(uint64_t)buf;

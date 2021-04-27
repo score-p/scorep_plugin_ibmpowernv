@@ -50,7 +50,7 @@ std::map<std::string, std::set<occ_sensor_t>> get_sensors_by_occid(const std::se
  * @param requested_sensors sensor to be extracted
  * @return map: sensors type -> value from buf
  */
-std::map<occ_sensor_t, double> get_sensor_values(void* buf,
-                                                 const std::set<occ_sensor_t>& requested_sensors);
+std::map<occ_sensor_t, uint64_t> get_sensor_values(void* buf,
+                                                   const std::set<occ_sensor_t>& requested_sensors);
 
 #endif // __SCOREP_IBMPOWERNV_PLUGIN_OCC_UTIL_HPP_INCLUDED__

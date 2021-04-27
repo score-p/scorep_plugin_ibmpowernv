@@ -247,7 +247,7 @@ private:
     /// file descriptor for the opened occ_inband_sensors file
     int occ_file_fd;
     /// recorded values for each sensor
-    std::map<occ_sensor_t, std::vector<double>> value_buffers_by_sensor;
+    std::map<occ_sensor_t, std::vector<uint64_t>> value_buffers_by_sensor;
 
     /// throws if a fatal condition has occured
     void check_fatal()
