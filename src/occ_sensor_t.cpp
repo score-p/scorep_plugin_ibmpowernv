@@ -34,23 +34,40 @@
 #include <map>
 #include <string>
 
+/// helper class to allow setting all attributes of scorep::plugin::metric_property from constructor
+class metric_type_constructable : public scorep::plugin::metric_property {
+public:
+    metric_type_constructable(std::string name,
+                              std::string description,
+                              std::string unit,
+                              SCOREP_MetricMode _mode = SCOREP_METRIC_MODE_ABSOLUTE_POINT,
+                              SCOREP_MetricValueType _type = SCOREP_METRIC_VALUE_DOUBLE,
+                              SCOREP_MetricBase _base = SCOREP_METRIC_BASE_DECIMAL,
+                              int64_t _exponent = 0) : scorep::plugin::metric_property(name, description, unit) {
+        // note: set here, because parent class' attributes can't be set from initializer lists
+        mode = _mode;
+        type = _type;
+        base = _base;
+        exponent = _exponent;
+    }
+};
+
 const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metric_properties_by_sensor = {
     // structure:
     // OCC-string identifier, bool whether to use accumulator or not
     // name for metric in trace, description, unit
     {{"PWRSYS", occ_sensor_sample_type::sample},
-     scorep::plugin::metric_property(
-         "occ_power_system", "power intake of the entire system", "W")},
+     metric_type_constructable("occ_power_system", "power intake of the entire system", "W", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_UINT64)},
     {{"PWRSYS", occ_sensor_sample_type::acc},
-     scorep::plugin::metric_property(
+     metric_type_constructable(
          "occ_power_system_acc",
          "accumulator of consumed energy by entire system",
-         "J")},
+         "J", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_UINT64)},
     {{"PWRSYS", occ_sensor_sample_type::timestamp},
-     scorep::plugin::metric_property(
+     metric_type_constructable(
          "occ_power_system_timestamp",
          "timestamp for occ_power_system sensors",
-         "?")},
+         "?", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_UINT64)},
 };
 
 bool operator<(const occ_sensor_t& lhs, const occ_sensor_t& rhs)

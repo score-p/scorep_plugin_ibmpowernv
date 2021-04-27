@@ -57,6 +57,7 @@ struct occ_sensor_t {
     /// what part of the record to record
     occ_sensor_sample_type type = occ_sensor_sample_type::timestamp;
 
+    // note: this should be a constant, but scorep::plugin::metric_property doesn't allow all its attributes to be set via constructor
     /// metric properties for all supported sensors
     static const std::map<occ_sensor_t, scorep::plugin::metric_property> metric_properties_by_sensor;
 };
