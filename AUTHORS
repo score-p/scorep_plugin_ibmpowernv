@@ -1,1 +1,25 @@
 Hannes Tröpgen <hannes dot troepgen at tu minus dresden dot de>
+
+Authors of copied or adjusted code:
+
+Variorum (MIT):
+Peter Bailey
+Shilpasri Bhat
+Grayson Blanks
+Jeff Booher-Kaeding
+Stephanie Brink
+Tiffany Connors
+Rigoberto Delgado
+Daniel Ellsworth
+Aniruddha Marathe
+Lauren Morita
+Tapasya Patki
+Barry Rountree
+Kathleen Shoga
+Scott Walker
+
+Score-P Meminfo Plugin (BSD-3-Clause):
+Julian Kruchy <julian.kruchy at tu-dresden dot de>
+
+Metricq time parsing function (BSD-3-Clause):
+Thomas Ilsche
