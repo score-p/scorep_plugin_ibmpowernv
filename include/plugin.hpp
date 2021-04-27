@@ -97,7 +97,7 @@ public:
         if ("*" == pattern) {
             // return all metrics
             for (const auto& it : occ_sensor_t::metric_properties_by_sensor) {
-                make_handle(it.second.name, it.first.name, it.first.acc);
+                make_handle(it.second.name, it.first.name, it.first.type);
                 result.push_back(it.second);
             }
             return result;
@@ -121,7 +121,7 @@ public:
 
             auto occ_sensor = occ_sensors_by_name.at(list_entry);
             auto metric_property = occ_sensor_t::metric_properties_by_sensor.at(occ_sensor);
-            make_handle(metric_property.name, occ_sensor.name, occ_sensor.acc);
+            make_handle(metric_property.name, occ_sensor.name, occ_sensor.type);
             result.push_back(metric_property);
         }
 

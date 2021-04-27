@@ -122,6 +122,7 @@ struct occ_sensor_name {
 enum sensor_attr {
     SENSOR_SAMPLE,
     SENSOR_ACCUMULATOR,
+    SENSOR_TIMESTAMP,
 };
 
 /**

@@ -60,18 +60,30 @@ std::map<occ_sensor_t, double> get_sensor_values(void* buf, const std::set<occ_s
         // check if current sensor is in requested_sensors
         if (sensors_by_occid.find(md[i].name) != sensors_by_occid.end()) {
             for (const auto& sensor : sensors_by_occid[md[i].name]) {
-                if (!sensor.acc) {
+                // declare vars here (declarations inside switch-case are forbidden/ugly)
+                uint32_t scale, freq;
+                uint64_t sample, energy, timestamp;
+
+                switch(sensor.type) {
+                case occ_sensor_sample_type::sample:
                     // regular sensor
-                    uint32_t scale = be32toh(md[i].scale_factor);
-                    uint64_t sample = get_sample(hb, &md[i]);
+                    scale = be32toh(md[i].scale_factor);
+                    sample = get_sample(hb, &md[i]);
                     values_by_sensor[sensor] = sample * get_occ_scale_as_fp(scale);
-                }
-                else {
+                    break;
+
+                case occ_sensor_sample_type::acc:
                     // accumulator
-                    uint64_t energy = read_occ_sensor(
-                        hb, be32toh(md[i].reading_offset), SENSOR_ACCUMULATOR);
-                    uint32_t freq = be32toh(md[i].freq);
+                    energy = read_occ_sensor(hb, be32toh(md[i].reading_offset), SENSOR_ACCUMULATOR);
+                    freq = be32toh(md[i].freq);
                     values_by_sensor[sensor] = energy / get_occ_scale_as_fp(freq);
+                    break;
+
+                case occ_sensor_sample_type::timestamp:
+                    // timestamp
+                    timestamp = read_occ_sensor(hb, be32toh(md[i].reading_offset), SENSOR_TIMESTAMP);
+                    values_by_sensor[sensor] = timestamp;
+                    break;
                 }
             }
         }

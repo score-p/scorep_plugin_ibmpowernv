@@ -38,14 +38,19 @@ const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metr
     // structure:
     // OCC-string identifier, bool whether to use accumulator or not
     // name for metric in trace, description, unit
-    {{"PWRSYS", false},
+    {{"PWRSYS", occ_sensor_sample_type::sample},
      scorep::plugin::metric_property(
          "occ_power_system", "power intake of the entire system", "W")},
-    {{"PWRSYS", true},
+    {{"PWRSYS", occ_sensor_sample_type::acc},
      scorep::plugin::metric_property(
          "occ_power_system_acc",
          "accumulator of consumed energy by entire system",
          "J")},
+    {{"PWRSYS", occ_sensor_sample_type::timestamp},
+     scorep::plugin::metric_property(
+         "occ_power_system_timestamp",
+         "timestamp for occ_power_system sensors",
+         "?")},
 };
 
 bool operator<(const occ_sensor_t& lhs, const occ_sensor_t& rhs)
@@ -54,5 +59,5 @@ bool operator<(const occ_sensor_t& lhs, const occ_sensor_t& rhs)
         return lhs.name < rhs.name;
     }
 
-    return lhs.acc < rhs.acc;
+    return lhs.type < rhs.type;
 }

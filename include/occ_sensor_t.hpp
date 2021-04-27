@@ -36,9 +36,16 @@
 #include <scorep/SCOREP_MetricTypes.h>
 #include <scorep/plugin/plugin.hpp>
 
+/// describes, which value from a sensor record should be recorded
+enum occ_sensor_sample_type {
+    sample,
+    acc,
+    timestamp,
+};
+
 /// contains all information required to locate a sensor and grab its value
 struct occ_sensor_t {
-    occ_sensor_t(const std::string& name, const bool acc) : name(name), acc(acc)
+    occ_sensor_t(const std::string& name, const occ_sensor_sample_type type) : name(name), type(type)
     {
     }
     occ_sensor_t()
@@ -47,8 +54,8 @@ struct occ_sensor_t {
 
     /// name as used in occ_inband_sensors (e.g. PWRSYS)
     std::string name;
-    /// whether to use the accumulator
-    bool acc = false;
+    /// what part of the record to record
+    occ_sensor_sample_type type = occ_sensor_sample_type::timestamp;
 
     /// metric properties for all supported sensors
     static const std::map<occ_sensor_t, scorep::plugin::metric_property> metric_properties_by_sensor;
