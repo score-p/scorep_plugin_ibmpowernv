@@ -75,7 +75,7 @@ std::map<occ_sensor_t, all_scorep_types> get_sensor_values(void* buf, const std:
             for (const auto& sensor : sensors_by_occid[md[i].name]) {
                 // declare vars here (declarations inside switch-case are forbidden/ugly)
                 uint32_t scale, freq;
-                uint64_t sample, energy, timestamp;
+                uint64_t sample, energy, timestamp, update_tag;
 
                 switch(sensor.type) {
                 case occ_sensor_sample_type::sample:
@@ -92,10 +92,27 @@ std::map<occ_sensor_t, all_scorep_types> get_sensor_values(void* buf, const std:
                     values_by_sensor[sensor].fill((double) (energy / get_occ_scale_as_fp(freq)));
                     break;
 
+                case occ_sensor_sample_type::acc_raw:
+                    // raw accumulator value
+                    energy = read_occ_sensor(hb, be32toh(md[i].reading_offset), SENSOR_ACCUMULATOR);
+                    values_by_sensor[sensor].fill((uint64_t) energy);
+                    break;
+
+                case occ_sensor_sample_type::acc_raw_freq:
+                    // reported sampling frequency for accumularor
+                    freq = get_occ_scale_as_fp(be32toh(md[i].freq));
+                    values_by_sensor[sensor].fill((double) freq);
+                    break;
+
                 case occ_sensor_sample_type::timestamp:
                     // timestamp
                     timestamp = read_occ_sensor(hb, be32toh(md[i].reading_offset), SENSOR_TIMESTAMP);
                     values_by_sensor[sensor].fill((uint64_t) timestamp);
+                    break;
+
+                case occ_sensor_sample_type::update_tag:
+                    update_tag = read_occ_sensor(hb, be32toh(md[i].reading_offset), SENSOR_UPDATE_TAG);
+                    values_by_sensor[sensor].fill((uint64_t) update_tag);
                     break;
                 }
             }

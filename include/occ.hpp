@@ -123,6 +123,7 @@ enum sensor_attr {
     SENSOR_SAMPLE,
     SENSOR_ACCUMULATOR,
     SENSOR_TIMESTAMP,
+    SENSOR_UPDATE_TAG,
 };
 
 /**

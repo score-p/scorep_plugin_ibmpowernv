@@ -50,6 +50,8 @@ unsigned long read_occ_sensor(struct occ_sensor_data_header* hb, uint32_t offset
         return be64toh(sensor->accumulator);
     case SENSOR_TIMESTAMP:
         return be64toh(sensor->timestamp);
+    case SENSOR_UPDATE_TAG:
+        return be32toh(sensor->update_tag);
     }
 
     throw std::runtime_error("invalid sensor attribute: " + std::to_string(attr));

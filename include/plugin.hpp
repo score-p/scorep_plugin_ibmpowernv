@@ -238,6 +238,9 @@ public:
             case SCOREP_METRIC_VALUE_UINT64:
                 c.write(times_[i], value_buffers_by_sensor[sensor][i].int_unsigned);
                 break;
+
+            default:
+                throw std::runtime_error("unidentified type detected: " + std::to_string(sensor.get_scorep_type()));
             }
         }
     }
