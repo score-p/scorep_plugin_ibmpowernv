@@ -33,6 +33,7 @@
 
 #include <map>
 #include <string>
+#include <stdexcept>
 
 /// helper class to allow setting all attributes of scorep::plugin::metric_property from constructor
 class metric_type_constructable : public scorep::plugin::metric_property {
@@ -57,7 +58,7 @@ const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metr
     // OCC-string identifier, bool whether to use accumulator or not
     // name for metric in trace, description, unit
     {{"PWRSYS", occ_sensor_sample_type::sample},
-     metric_type_constructable("occ_power_system", "power intake of the entire system", "W", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_UINT64)},
+     metric_type_constructable("occ_power_system", "power intake of the entire system", "W", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
     {{"PWRSYS", occ_sensor_sample_type::acc},
      metric_type_constructable(
          "occ_power_system_acc",
@@ -70,6 +71,16 @@ const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metr
          "?", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_UINT64)},
 };
 
+SCOREP_MetricValueType occ_sensor_t::get_scorep_type() const {
+    for (const auto it : occ_sensor_t::metric_properties_by_sensor) {
+        if (*this == it.first) {
+            return it.second.type;
+        }
+    }
+
+    throw std::runtime_error("can't identify datatype for sensor " + name + " with type " + std::to_string(type));
+}
+
 bool operator<(const occ_sensor_t& lhs, const occ_sensor_t& rhs)
 {
     if (lhs.name != rhs.name) {
@@ -77,4 +88,8 @@ bool operator<(const occ_sensor_t& lhs, const occ_sensor_t& rhs)
     }
 
     return lhs.type < rhs.type;
+}
+
+bool operator==(const occ_sensor_t& lhs, const occ_sensor_t& rhs) {
+    return lhs.name == rhs.name && lhs.type == rhs.type;
 }

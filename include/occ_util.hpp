@@ -36,6 +36,18 @@
 
 #include <occ_sensor_t.hpp>
 
+/// struct to hold all types that scorep supports -> correct one is selected when passing to scorep API
+struct all_scorep_types {
+    double fp64 = 0;
+    uint64_t int_unsigned = 0;
+    int64_t int_signed = 0;
+
+    /// automatically fill values
+    void fill(uint64_t u);
+    void fill(double d);
+};
+typedef struct all_scorep_types all_scorep_types;
+
 /**
  * reorganize given sensors into map with OCC identifier (string like "PWRSYS") -> sensor(s).
  * helper used for easier lookup when iterating all available sensors.
@@ -50,7 +62,7 @@ std::map<std::string, std::set<occ_sensor_t>> get_sensors_by_occid(const std::se
  * @param requested_sensors sensor to be extracted
  * @return map: sensors type -> value from buf
  */
-std::map<occ_sensor_t, uint64_t> get_sensor_values(void* buf,
-                                                   const std::set<occ_sensor_t>& requested_sensors);
+std::map<occ_sensor_t, all_scorep_types> get_sensor_values(void* buf,
+                                                           const std::set<occ_sensor_t>& requested_sensors);
 
 #endif // __SCOREP_IBMPOWERNV_PLUGIN_OCC_UTIL_HPP_INCLUDED__

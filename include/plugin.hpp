@@ -226,7 +226,19 @@ public:
 
         // write buffered measurements for given sensor
         for (int i = 0; i < times_.size(); i++) {
-            c.write(times_[i], value_buffers_by_sensor[sensor][i]);
+            switch(sensor.get_scorep_type()) {
+            case SCOREP_METRIC_VALUE_DOUBLE:
+                c.write(times_[i], value_buffers_by_sensor[sensor][i].fp64);
+                break;
+
+            case SCOREP_METRIC_VALUE_INT64:
+                c.write(times_[i], value_buffers_by_sensor[sensor][i].int_signed);
+                break;
+
+            case SCOREP_METRIC_VALUE_UINT64:
+                c.write(times_[i], value_buffers_by_sensor[sensor][i].int_unsigned);
+                break;
+            }
         }
     }
 
@@ -247,7 +259,7 @@ private:
     /// file descriptor for the opened occ_inband_sensors file
     int occ_file_fd;
     /// recorded values for each sensor
-    std::map<occ_sensor_t, std::vector<uint64_t>> value_buffers_by_sensor;
+    std::map<occ_sensor_t, std::vector<all_scorep_types>> value_buffers_by_sensor;
 
     /// throws if a fatal condition has occured
     void check_fatal()
