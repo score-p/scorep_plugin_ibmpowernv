@@ -44,8 +44,9 @@ struct all_sample_data {
     uint64_t int_unsigned = 0;
     int64_t int_signed = 0;
 
-    double acc_scaled = 0;
+    uint64_t acc_raw = 0;
     uint64_t update_tag = 0;
+    double acc_freq = 0;
 
     /// automatically fill values
     void fill(uint64_t u);

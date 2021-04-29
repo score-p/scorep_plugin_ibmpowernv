@@ -119,8 +119,9 @@ std::map<occ_sensor_t, all_sample_data> get_sensor_values(void* buf, const std::
                     update_tag = read_occ_sensor(hb, be32toh(md[i].reading_offset), SENSOR_UPDATE_TAG);
                     energy = read_occ_sensor(hb, be32toh(md[i].reading_offset), SENSOR_ACCUMULATOR);
                     freq = be32toh(md[i].freq);
-                    values_by_sensor[sensor].acc_scaled = energy / get_occ_scale_as_fp(freq);
+                    values_by_sensor[sensor].acc_raw = energy;
                     values_by_sensor[sensor].update_tag = update_tag;
+                    values_by_sensor[sensor].acc_freq = get_occ_scale_as_fp(freq);
                     break;
                 }
             }

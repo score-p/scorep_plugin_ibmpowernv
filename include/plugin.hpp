@@ -227,16 +227,18 @@ public:
         // write buffered measurements for given sensor
         if (occ_sensor_sample_type::acc_derivative == sensor.type) {
             // derive actual value from acc
-            double last_acc = value_buffers_by_sensor[sensor][0].acc_scaled;
+            double last_acc = value_buffers_by_sensor[sensor][0].acc_raw;
             for (int i = 0; i < times_.size(); i++) {
-                double current_acc = value_buffers_by_sensor[sensor][i].acc_scaled;
+                double current_acc = value_buffers_by_sensor[sensor][i].acc_raw;
                 if (current_acc > last_acc) {
-                    // only act on change & no overflow (which happens after ~416 days, but never trust input)
-                    // tickrate is 512 MHz
-                    double delta_ns = value_buffers_by_sensor[sensor][i].update_tag / 512;
-                    double power = (current_acc - last_acc) / (delta_ns * 1e9);
+                    // only act on change & no overflow (which happens after 2^64s = ~416 days, but never trust input)
+                    // "update_tag" describes the (total) number of samples present in the acc
+                    uint64_t samples_in_acc = value_buffers_by_sensor[sensor][i].update_tag - value_buffers_by_sensor[sensor][i-1].update_tag;
+                    // freq is in Hz; scale to us to avoid loss due to rounding errors
+                    uint64_t delta_us = (1e6 * samples_in_acc) / value_buffers_by_sensor[sensor][i].acc_freq;
+                    double power = (current_acc - last_acc) / (delta_us * 1e6);
                     // TODO calculate time
-                    scorep::chrono::ticks time = times_[i] - convert.to_ticks(std::chrono::nanoseconds((uint64_t) delta_ns));
+                    scorep::chrono::ticks time = times_[i] - convert.to_ticks(std::chrono::milliseconds((uint64_t) delta_us));
                     c.write(time, power);
                 }
                 last_acc = current_acc;
