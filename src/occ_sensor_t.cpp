@@ -84,6 +84,11 @@ const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metr
          "occ_power_system_acc_raw_freq",
          "samples per second recorded to accumulator",
          "", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
+    {{"PWRSYS", occ_sensor_sample_type::acc_derivative},
+     metric_type_constructable(
+         "occ_power_system_from_energy",
+         "system power derived from energy",
+         "", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
 };
 
 SCOREP_MetricValueType occ_sensor_t::get_scorep_type() const {

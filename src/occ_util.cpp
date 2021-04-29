@@ -38,13 +38,13 @@
 #include <occ_sensor_t.hpp>
 
 
-void all_scorep_types::fill(uint64_t u) {
+void all_sample_data::fill(uint64_t u) {
     int_unsigned = u;
     int_signed = u;
     fp64 = u;
 }
 
-void all_scorep_types::fill(double d) {
+void all_sample_data::fill(double d) {
     fp64 = d;
     int_signed = (int64_t) (d + 0.5);
     int_unsigned = int_signed;
@@ -59,9 +59,9 @@ std::map<std::string, std::set<occ_sensor_t>> get_sensors_by_occid(const std::se
     return m;
 }
 
-std::map<occ_sensor_t, all_scorep_types> get_sensor_values(void* buf, const std::set<occ_sensor_t>& requested_sensors)
+std::map<occ_sensor_t, all_sample_data> get_sensor_values(void* buf, const std::set<occ_sensor_t>& requested_sensors)
 {
-    std::map<occ_sensor_t, all_scorep_types> values_by_sensor;
+    std::map<occ_sensor_t, all_sample_data> values_by_sensor;
     auto sensors_by_occid = get_sensors_by_occid(requested_sensors);
 
     struct occ_sensor_data_header* hb = (struct occ_sensor_data_header*)(uint64_t)buf;
@@ -113,6 +113,14 @@ std::map<occ_sensor_t, all_scorep_types> get_sensor_values(void* buf, const std:
                 case occ_sensor_sample_type::update_tag:
                     update_tag = read_occ_sensor(hb, be32toh(md[i].reading_offset), SENSOR_UPDATE_TAG);
                     values_by_sensor[sensor].fill((uint64_t) update_tag);
+                    break;
+
+                case occ_sensor_sample_type::acc_derivative:
+                    update_tag = read_occ_sensor(hb, be32toh(md[i].reading_offset), SENSOR_UPDATE_TAG);
+                    energy = read_occ_sensor(hb, be32toh(md[i].reading_offset), SENSOR_ACCUMULATOR);
+                    freq = be32toh(md[i].freq);
+                    values_by_sensor[sensor].acc_scaled = energy / get_occ_scale_as_fp(freq);
+                    values_by_sensor[sensor].update_tag = update_tag;
                     break;
                 }
             }

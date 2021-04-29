@@ -54,8 +54,6 @@
 #include <occ_util.hpp>
 #include <util.hpp>
 
-// TODO apply clang format
-
 using scorep::plugin::log::logging;
 
 class ibmpowernv_plugin
@@ -168,6 +166,7 @@ public:
     void exec()
     {
         check_fatal();
+        convert.synchronize_point();
 
         std::shared_ptr<void> buf(new int8_t[OCC_SENSOR_DATA_BLOCK_SIZE]);
         if (nullptr == buf) {
@@ -199,6 +198,7 @@ public:
             }
             std::this_thread::sleep_until(last_measurement_);
         }
+        convert.synchronize_point();
     }
 
     template <typename Cursor>
@@ -225,22 +225,42 @@ public:
         }
 
         // write buffered measurements for given sensor
-        for (int i = 0; i < times_.size(); i++) {
-            switch(sensor.get_scorep_type()) {
-            case SCOREP_METRIC_VALUE_DOUBLE:
-                c.write(times_[i], value_buffers_by_sensor[sensor][i].fp64);
-                break;
+        if (occ_sensor_sample_type::acc_derivative == sensor.type) {
+            // derive actual value from acc
+            double last_acc = value_buffers_by_sensor[sensor][0].acc_scaled;
+            for (int i = 0; i < times_.size(); i++) {
+                double current_acc = value_buffers_by_sensor[sensor][i].acc_scaled;
+                if (current_acc > last_acc) {
+                    // only act on change & no overflow (which happens after ~416 days, but never trust input)
+                    // tickrate is 512 MHz
+                    double delta_ns = value_buffers_by_sensor[sensor][i].update_tag / 512;
+                    double power = (current_acc - last_acc) / (delta_ns * 1e9);
+                    // TODO calculate time
+                    scorep::chrono::ticks time = times_[i] - convert.to_ticks(std::chrono::nanoseconds((uint64_t) delta_ns));
+                    c.write(time, power);
+                }
+                last_acc = current_acc;
+            }
+        } else {
+            // normal sensor -> just copy value
+            for (int i = 0; i < times_.size(); i++) {
 
-            case SCOREP_METRIC_VALUE_INT64:
-                c.write(times_[i], value_buffers_by_sensor[sensor][i].int_signed);
-                break;
+                switch(sensor.get_scorep_type()) {
+                case SCOREP_METRIC_VALUE_DOUBLE:
+                    c.write(times_[i], value_buffers_by_sensor[sensor][i].fp64);
+                    break;
 
-            case SCOREP_METRIC_VALUE_UINT64:
-                c.write(times_[i], value_buffers_by_sensor[sensor][i].int_unsigned);
-                break;
+                case SCOREP_METRIC_VALUE_INT64:
+                    c.write(times_[i], value_buffers_by_sensor[sensor][i].int_signed);
+                    break;
 
-            default:
-                throw std::runtime_error("unidentified type detected: " + std::to_string(sensor.get_scorep_type()));
+                case SCOREP_METRIC_VALUE_UINT64:
+                    c.write(times_[i], value_buffers_by_sensor[sensor][i].int_unsigned);
+                    break;
+
+                default:
+                    throw std::runtime_error("unidentified type detected: " + std::to_string(sensor.get_scorep_type()));
+                }
             }
         }
     }
@@ -262,7 +282,9 @@ private:
     /// file descriptor for the opened occ_inband_sensors file
     int occ_file_fd;
     /// recorded values for each sensor
-    std::map<occ_sensor_t, std::vector<all_scorep_types>> value_buffers_by_sensor;
+    std::map<occ_sensor_t, std::vector<all_sample_data>> value_buffers_by_sensor;
+    /// used to convert times
+    scorep::chrono::time_convert<> convert;
 
     /// throws if a fatal condition has occured
     void check_fatal()

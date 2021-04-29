@@ -44,6 +44,7 @@ enum occ_sensor_sample_type {
     update_tag,
     acc_raw,
     acc_raw_freq,
+    acc_derivative,
 };
 
 /// contains all information required to locate a sensor and grab its value
