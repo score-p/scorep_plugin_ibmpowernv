@@ -232,12 +232,10 @@ public:
                 double current_acc = value_buffers_by_sensor[sensor][i].acc_raw;
                 if (current_acc > last_acc) {
                     // only act on change & no overflow (which happens after 2^64s = ~416 days, but never trust input)
-                    // "update_tag" describes the (total) number of samples present in the acc
-                    uint64_t samples_in_acc = value_buffers_by_sensor[sensor][i].update_tag - value_buffers_by_sensor[sensor][i-1].update_tag;
-                    // freq is in Hz; scale to us to avoid loss due to rounding errors
-                    uint64_t delta_us = (1e6 * samples_in_acc) / value_buffers_by_sensor[sensor][i].acc_freq;
-                    double power = (current_acc - last_acc) / (delta_us * 1e6);
-                    // TODO calculate time
+                    // "update_tag" describes the (total) number of samples present in the acc -> extract delta
+                    double delta_samples = value_buffers_by_sensor[sensor][i].update_tag - value_buffers_by_sensor[sensor][i-1].update_tag;
+                    uint64_t delta_us = delta_samples / value_buffers_by_sensor[sensor][i].acc_freq;
+                    double power = (current_acc - last_acc) / delta_samples;
                     scorep::chrono::ticks time = times_[i] - convert.to_ticks(std::chrono::milliseconds((uint64_t) delta_us));
                     c.write(time, power);
                 }
