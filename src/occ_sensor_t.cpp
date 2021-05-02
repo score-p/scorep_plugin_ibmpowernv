@@ -88,7 +88,7 @@ const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metr
      metric_type_constructable(
          "occ_power_system_from_energy",
          "system power derived from energy",
-         "W", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
+         "W", SCOREP_METRIC_MODE_ABSOLUTE_LAST, SCOREP_METRIC_VALUE_DOUBLE)},
 };
 
 SCOREP_MetricValueType occ_sensor_t::get_scorep_type() const {

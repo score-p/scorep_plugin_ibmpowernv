@@ -234,10 +234,8 @@ public:
                     // only act on change & no overflow (which happens after 2^64s = ~416 days, but never trust input)
                     // "update_tag" describes the (total) number of samples present in the acc -> extract delta
                     double delta_samples = value_buffers_by_sensor[sensor][i].update_tag - value_buffers_by_sensor[sensor][i-1].update_tag;
-                    uint64_t delta_us = delta_samples / value_buffers_by_sensor[sensor][i].acc_freq;
                     double power = (current_acc - last_acc) / delta_samples;
-                    scorep::chrono::ticks time = times_[i] - convert.to_ticks(std::chrono::milliseconds((uint64_t) delta_us));
-                    c.write(time, power);
+                    c.write(times_[i], power);
                 }
                 last_acc = current_acc;
             }
