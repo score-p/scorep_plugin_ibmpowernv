@@ -72,23 +72,23 @@ const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metr
     {{"PWRSYS", occ_sensor_sample_type::update_tag},
      metric_type_constructable(
          "occ_power_system_update_tag",
-         "duration since last accumulator update in ticks (@ 512 MHz)",
-         "ticks", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_UINT64)},
+         "number of samples stored in accumulator",
+         "samples", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_UINT64)},
     {{"PWRSYS", occ_sensor_sample_type::acc_raw},
      metric_type_constructable(
          "occ_power_system_acc_raw",
          "raw (unscaled) value of accumulator",
-         "samples", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_UINT64)},
+         "unscaled energy", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_UINT64)},
     {{"PWRSYS", occ_sensor_sample_type::acc_raw_freq},
      metric_type_constructable(
          "occ_power_system_acc_raw_freq",
          "samples per second recorded to accumulator",
-         "", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
+         "Hz", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
     {{"PWRSYS", occ_sensor_sample_type::acc_derivative},
      metric_type_constructable(
          "occ_power_system_from_energy",
          "system power derived from energy",
-         "", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
+         "W", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
 };
 
 SCOREP_MetricValueType occ_sensor_t::get_scorep_type() const {
