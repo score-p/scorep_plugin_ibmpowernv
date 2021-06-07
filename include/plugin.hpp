@@ -94,7 +94,6 @@ public:
     std::vector<scorep::plugin::metric_property> get_metric_properties(const std::string& pattern)
     {
         check_fatal();
-        // TODO rework to include metrics for each socket
 
         std::vector<scorep::plugin::metric_property> result;
 
@@ -127,8 +126,20 @@ public:
         // create map: metric name -> sensor object (which will in turn be mapped to a metric object)
         // Note: I would love to be the value type a metric_property directly, BUT THE WRAPPER IS NOT SPECIFIED TO SUPPORT THAT
         std::map<std::string, occ_sensor_t> occ_sensors_by_name;
+
+        // global sensors
         for (const auto& it : occ_sensor_t::metric_properties_by_sensor_master_only) {
             occ_sensors_by_name[it.second.name] = it.first;
+        }
+        // socket-local sensors
+        for (size_t socket_num = 0; socket_num < socket_count; socket_num++) {
+            for (const auto& it : occ_sensor_t::metric_properties_by_sensor_master_only) {
+                auto scorep_metric = it.second;
+                scorep_metric.name += "." + std::to_string(socket_num);
+                auto sensor = it.first;
+                sensor.socket_num = socket_num;
+                occ_sensors_by_name[scorep_metric.name] = sensor;
+            }
         }
 
         // iterate over items in comma-seperated list
