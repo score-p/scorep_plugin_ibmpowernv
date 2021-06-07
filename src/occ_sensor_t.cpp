@@ -35,6 +35,13 @@
 #include <string>
 #include <stdexcept>
 
+#define OCC_PLUGIN_ADD_SENSOR_DEFAULT(occ_str, scorep_str, desc, unit) \
+    {{occ_str, occ_sensor_sample_type::sample, 0},\
+     metric_type_constructable(scorep_str, desc, unit, SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},\
+    {{occ_str, occ_sensor_sample_type::acc_derivative, 0},\
+     metric_type_constructable(scorep_str "_from_energy", desc " (derived from accumulator)", unit, SCOREP_METRIC_MODE_ABSOLUTE_LAST, SCOREP_METRIC_VALUE_DOUBLE)}
+
+
 /// helper class to allow setting all attributes of scorep::plugin::metric_property from constructor
 class metric_type_constructable : public scorep::plugin::metric_property {
 public:
@@ -54,23 +61,26 @@ public:
 };
 
 const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metric_properties_by_sensor_master_only = {
-    // structure:
+    // to add a sensor + derived-from-acc w/ double you can use this macro:
+    OCC_PLUGIN_ADD_SENSOR_DEFAULT("PWRSYS", "occ_power_system", "power intake of the entire system", "W"),
+
+    // to manually specify sensors use this structure:
     // OCC-string identifier, bool whether to use accumulator or not
     // name for metric in trace, description, unit
-    {{"PWRSYS", occ_sensor_sample_type::sample, 0},
-     metric_type_constructable(
-         "occ_power_system",
-         "power intake of the entire system",
-         "W", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
-    {{"PWRSYS", occ_sensor_sample_type::acc_derivative, 0},
-     metric_type_constructable(
-         "occ_power_system_from_energy",
-         "system power derived from energy",
-         "W", SCOREP_METRIC_MODE_ABSOLUTE_LAST, SCOREP_METRIC_VALUE_DOUBLE)},
+    //
+    // example:
+    //{{"PWRSYS", occ_sensor_sample_type::sample, 0},
+    // metric_type_constructable(
+    //     "occ_power_system",
+    //     "power intake of the entire system",
+    //     "W", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
+    //{{"PWRSYS", occ_sensor_sample_type::acc_derivative, 0},
+    // metric_type_constructable(
+    //     "occ_power_system_from_energy",
+    //     "system power derived from energy",
+    //     "W", SCOREP_METRIC_MODE_ABSOLUTE_LAST, SCOREP_METRIC_VALUE_DOUBLE)},
 
     // other metrics that are usually only required for testing. uncomment and recompile to enable
-    // vvv
-
     //{{"PWRSYS", occ_sensor_sample_type::acc},
     // metric_type_constructable(
     //     "occ_power_system_acc",
@@ -99,14 +109,12 @@ const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metr
 };
 
 const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metric_properties_by_sensor_per_socket = {
-    // structure:
-    // OCC-string identifier, bool whether to use accumulator or not
-    // name for metric in trace, description, unit
-    {{"PWRGPU", occ_sensor_sample_type::sample, 0},
-     metric_type_constructable(
-         "occ_power_gpu",
-         "power intake of connected GPU(s)",
-         "W", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
+    // works same as above, but the socket number is ignored (but still required)
+    OCC_PLUGIN_ADD_SENSOR_DEFAULT("PWRGPU", "occ_power_gpu", "power consumption of attached GPU(s)", "W"),
+    OCC_PLUGIN_ADD_SENSOR_DEFAULT("PWRPROC", "occ_power_proc", "power consumption for this processor", "W"),
+    OCC_PLUGIN_ADD_SENSOR_DEFAULT("PWRVDD", "occ_power_vdd", "power consumption for this processor's vdd", "W"),
+    OCC_PLUGIN_ADD_SENSOR_DEFAULT("PWRVDN", "occ_power_vdn", "power consumption for this processor's vdn", "W"),
+    OCC_PLUGIN_ADD_SENSOR_DEFAULT("PWRMEM", "occ_power_mem", "power consumption for this processor's memory", "W"),
 };
 
 SCOREP_MetricValueType occ_sensor_t::get_scorep_type() const {
