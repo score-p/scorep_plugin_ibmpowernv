@@ -84,7 +84,6 @@ public:
         } catch (const std::invalid_argument&) {
             fatal("could not determine number of sockets to read");
         }
-
         if (socket_count < 1) {
             fatal("must at least watch one socket");
         }
@@ -103,10 +102,25 @@ public:
 
         if ("*" == pattern) {
             // return all metrics
+
+            // global metrics (only available on first socket)
             for (const auto& it : occ_sensor_t::metric_properties_by_sensor_master_only) {
                 make_handle(it.second.name, it.first.name, it.first.type, it.first.socket_num);
                 result.push_back(it.second);
             }
+
+            // socket-local metrics (available on every socket)
+            for (size_t socket_num = 0; socket_num < socket_count; socket_num++) {
+                for (const auto& it : occ_sensor_t::metric_properties_by_sensor_per_socket) {
+                    auto scorep_metric = it.second;
+                    scorep_metric.name += "." + std::to_string(socket_num);
+                    // !! use socket_num from loop and not from map
+                    make_handle(scorep_metric.name, it.first.name, it.first.type, socket_num);
+                    result.push_back(scorep_metric);
+                }
+            }
+
+            logging::info() << "added " << result.size() << " sensors";
             return result;
         }
 
@@ -179,10 +193,9 @@ public:
 
         // hold data read from sysfs file, ordered by socket
         std::shared_ptr<void> raw_occ_buffer(new int8_t[OCC_SENSOR_DATA_BLOCK_SIZE * socket_count]);
-        if (nullptr == buf) {
+        if (nullptr == raw_occ_buffer) {
             fatal("couldn't allocate buffer for occ sensor data");
         }
-
 
         // requested sensors: all keys that have been initialized (with an empty vector)
         std::set<occ_sensor_t> requested_sensors_set;

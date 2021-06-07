@@ -125,9 +125,13 @@ bool operator<(const occ_sensor_t& lhs, const occ_sensor_t& rhs)
         return lhs.name < rhs.name;
     }
 
-    return lhs.type < rhs.type;
+    if (lhs.type != rhs.type) {
+        return lhs.type < rhs.type;
+    }
+
+    return lhs.socket_num < rhs.socket_num;
 }
 
 bool operator==(const occ_sensor_t& lhs, const occ_sensor_t& rhs) {
-    return lhs.name == rhs.name && lhs.type == rhs.type;
+    return lhs.name == rhs.name && lhs.type == rhs.type && lhs.socket_num == rhs.socket_num;
 }

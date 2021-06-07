@@ -65,7 +65,10 @@ static std::map<occ_sensor_t, all_sample_data> get_sensor_values_single_socket(v
     auto sensors_by_occid = get_sensors_by_occid(requested_sensors);
 
     // note: apply offset for current socket
-    struct occ_sensor_data_header* hb = (struct occ_sensor_data_header*)(uint64_t)buf + socket_num * OCC_SENSOR_DATA_BLOCK_SIZE;
+    // this looks a little strange, so let me elaborate briefly:
+    // cast buf to uint8_t, so any addition by operator+ is in byte
+    // then add the required offset and cast to final type
+    struct occ_sensor_data_header* hb = (struct occ_sensor_data_header*)((uint8_t*)buf + socket_num * OCC_SENSOR_DATA_BLOCK_SIZE);
     struct occ_sensor_name* md =
         (struct occ_sensor_name*)((uint64_t)hb + be32toh(hb->names_offset));
 
@@ -76,7 +79,6 @@ static std::map<occ_sensor_t, all_sample_data> get_sensor_values_single_socket(v
             for (const auto& sensor : sensors_by_occid[md[i].name]) {
                 if (sensor.socket_num != socket_num) {
                     // skip all sensors not on current chip
-                    throw std::runtime_error("found instance of " + std::string(md[i].name) + ", but should collect on chip " + std::to_string(sensor.socket_num) + ", but we are on socket " + std::to_string(socket_num));
                     continue;
                 }
 
