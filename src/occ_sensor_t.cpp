@@ -58,37 +58,44 @@ const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metr
     // OCC-string identifier, bool whether to use accumulator or not
     // name for metric in trace, description, unit
     {{"PWRSYS", occ_sensor_sample_type::sample},
-     metric_type_constructable("occ_power_system", "power intake of the entire system", "W", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
-    {{"PWRSYS", occ_sensor_sample_type::acc},
      metric_type_constructable(
-         "occ_power_system_acc",
-         "accumulator of consumed energy by entire system",
-         "J", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_UINT64)},
-    {{"PWRSYS", occ_sensor_sample_type::timestamp},
-     metric_type_constructable(
-         "occ_power_system_timestamp",
-         "timestamp for occ_power_system sensors (@ 512 MHz)",
-         "ticks", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_UINT64)},
-    {{"PWRSYS", occ_sensor_sample_type::update_tag},
-     metric_type_constructable(
-         "occ_power_system_update_tag",
-         "duration since last accumulator update in ticks (@ 512 MHz)",
-         "ticks", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_UINT64)},
-    {{"PWRSYS", occ_sensor_sample_type::acc_raw},
-     metric_type_constructable(
-         "occ_power_system_acc_raw",
-         "raw (unscaled) value of accumulator",
-         "samples", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_UINT64)},
-    {{"PWRSYS", occ_sensor_sample_type::acc_raw_freq},
-     metric_type_constructable(
-         "occ_power_system_acc_raw_freq",
-         "samples per second recorded to accumulator",
-         "", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
+         "occ_power_system",
+         "power intake of the entire system",
+         "W", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
     {{"PWRSYS", occ_sensor_sample_type::acc_derivative},
      metric_type_constructable(
          "occ_power_system_from_energy",
          "system power derived from energy",
          "", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
+
+    // other metrics that are usually only required for testing. uncomment and recompile to enable
+    // vvv
+    
+    //{{"PWRSYS", occ_sensor_sample_type::acc},
+    // metric_type_constructable(
+    //     "occ_power_system_acc",
+    //     "accumulator of consumed energy by entire system",
+    //     "J", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_UINT64)},
+    //{{"PWRSYS", occ_sensor_sample_type::timestamp},
+    // metric_type_constructable(
+    //     "occ_power_system_timestamp",
+    //     "timestamp for occ_power_system sensors (@ 512 MHz)",
+    //     "ticks", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_UINT64)},
+    //{{"PWRSYS", occ_sensor_sample_type::update_tag},
+    // metric_type_constructable(
+    //     "occ_power_system_update_tag",
+    //     "duration since last accumulator update in ticks (@ 512 MHz)",
+    //     "ticks", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_UINT64)},
+    //{{"PWRSYS", occ_sensor_sample_type::acc_raw},
+    // metric_type_constructable(
+    //     "occ_power_system_acc_raw",
+    //     "raw (unscaled) value of accumulator",
+    //     "samples", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_UINT64)},
+    //{{"PWRSYS", occ_sensor_sample_type::acc_raw_freq},
+    // metric_type_constructable(
+    //     "occ_power_system_acc_raw_freq",
+    //     "samples per second recorded to accumulator",
+    //     "", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
 };
 
 SCOREP_MetricValueType occ_sensor_t::get_scorep_type() const {
