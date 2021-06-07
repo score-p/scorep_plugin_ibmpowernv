@@ -63,8 +63,8 @@ struct occ_sensor_t {
 
     SCOREP_MetricValueType get_scorep_type() const;
 
-    /// metric properties for all supported sensors
-    static const std::map<occ_sensor_t, scorep::plugin::metric_property> metric_properties_by_sensor;
+    /// metric properties for all supported *global* sensors (only present on first socket)
+    static const std::map<occ_sensor_t, scorep::plugin::metric_property> metric_properties_by_sensor_master_only;
 };
 typedef struct occ_sensor_t occ_sensor_t;
 

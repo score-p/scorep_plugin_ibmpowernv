@@ -94,7 +94,7 @@ public:
 
         if ("*" == pattern) {
             // return all metrics
-            for (const auto& it : occ_sensor_t::metric_properties_by_sensor) {
+            for (const auto& it : occ_sensor_t::metric_properties_by_sensor_master_only) {
                 make_handle(it.second.name, it.first.name, it.first.type);
                 result.push_back(it.second);
             }
@@ -104,7 +104,7 @@ public:
         // create map: metric name -> sensor object (which will in turn be mapped to a metric object)
         // Note: I would love to be the value type a metric_property directly, BUT THE WRAPPER IS NOT SPECIFIED TO SUPPORT THAT
         std::map<std::string, occ_sensor_t> occ_sensors_by_name;
-        for (const auto& it : occ_sensor_t::metric_properties_by_sensor) {
+        for (const auto& it : occ_sensor_t::metric_properties_by_sensor_master_only) {
             occ_sensors_by_name[it.second.name] = it.first;
         }
 
@@ -118,7 +118,7 @@ public:
             }
 
             auto occ_sensor = occ_sensors_by_name.at(list_entry);
-            auto metric_property = occ_sensor_t::metric_properties_by_sensor.at(occ_sensor);
+            auto metric_property = occ_sensor_t::metric_properties_by_sensor_master_only.at(occ_sensor);
             make_handle(metric_property.name, occ_sensor.name, occ_sensor.type);
             result.push_back(metric_property);
         }

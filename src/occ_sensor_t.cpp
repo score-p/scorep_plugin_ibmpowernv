@@ -53,7 +53,7 @@ public:
     }
 };
 
-const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metric_properties_by_sensor = {
+const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metric_properties_by_sensor_master_only = {
     // structure:
     // OCC-string identifier, bool whether to use accumulator or not
     // name for metric in trace, description, unit
@@ -99,7 +99,7 @@ const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metr
 };
 
 SCOREP_MetricValueType occ_sensor_t::get_scorep_type() const {
-    for (const auto it : occ_sensor_t::metric_properties_by_sensor) {
+    for (const auto it : occ_sensor_t::metric_properties_by_sensor_master_only) {
         if (*this == it.first) {
             return it.second.type;
         }
