@@ -65,8 +65,6 @@ class ibmpowernv_plugin
                                   occ_sensor_policy> {
 public:
     /// id of the chip to be used; testing suggests leaving it at 0 is best
-    int chipid = 0;
-
     ibmpowernv_plugin()
     {
         sampling_interval = get_ns_from_str(
@@ -81,12 +79,23 @@ public:
             fatal("could not open sensor file");
         }
 
+        try {
+            socket_count = std::stoi(scorep::environment_variable::get("SOCKETS", "2"));
+        } catch (const std::invalid_argument&) {
+            fatal("could not determine number of sockets to read");
+        }
+
+        if (socket_count < 1) {
+            fatal("must at least watch one socket");
+        }
+
         logging::info() << "ibmpowernv plugin constructed";
     }
 
     std::vector<scorep::plugin::metric_property> get_metric_properties(const std::string& pattern)
     {
         check_fatal();
+        // TODO rework to include metrics for each socket
 
         std::vector<scorep::plugin::metric_property> result;
 
@@ -95,7 +104,7 @@ public:
         if ("*" == pattern) {
             // return all metrics
             for (const auto& it : occ_sensor_t::metric_properties_by_sensor_master_only) {
-                make_handle(it.second.name, it.first.name, it.first.type);
+                make_handle(it.second.name, it.first.name, it.first.type, it.first.socket_num);
                 result.push_back(it.second);
             }
             return result;
@@ -119,7 +128,7 @@ public:
 
             auto occ_sensor = occ_sensors_by_name.at(list_entry);
             auto metric_property = occ_sensor_t::metric_properties_by_sensor_master_only.at(occ_sensor);
-            make_handle(metric_property.name, occ_sensor.name, occ_sensor.type);
+            make_handle(metric_property.name, occ_sensor.name, occ_sensor.type, occ_sensor.socket_num);
             result.push_back(metric_property);
         }
 
@@ -168,10 +177,12 @@ public:
         check_fatal();
         convert.synchronize_point();
 
-        std::shared_ptr<void> buf(new int8_t[OCC_SENSOR_DATA_BLOCK_SIZE]);
+        // hold data read from sysfs file, ordered by socket
+        std::shared_ptr<void> raw_occ_buffer(new int8_t[OCC_SENSOR_DATA_BLOCK_SIZE * socket_count]);
         if (nullptr == buf) {
             fatal("couldn't allocate buffer for occ sensor data");
         }
+
 
         // requested sensors: all keys that have been initialized (with an empty vector)
         std::set<occ_sensor_t> requested_sensors_set;
@@ -185,10 +196,10 @@ public:
 
             // read occ file
             times_.push_back(scorep::chrono::measurement_clock::now());
-            read_file_into_buffer(buf.get());
+            read_file_into_buffer(raw_occ_buffer.get(), socket_count);
 
             // parse data from file & store values
-            for (const auto& it : get_sensor_values(buf.get(), requested_sensors_set)) {
+            for (const auto& it : get_sensor_values(raw_occ_buffer.get(), requested_sensors_set, socket_count)) {
                 value_buffers_by_sensor[it.first].push_back(it.second);
             }
 
@@ -279,10 +290,12 @@ private:
         std::chrono::system_clock::now();
     /// file descriptor for the opened occ_inband_sensors file
     int occ_file_fd;
-    /// recorded values for each sensor
+    /// recorded values for each senso
     std::map<occ_sensor_t, std::vector<all_sample_data>> value_buffers_by_sensor;
     /// used to convert times
     scorep::chrono::time_convert<> convert;
+    /// number of sockets to read from
+    std::atomic<int> socket_count = 2;
 
     /// throws if a fatal condition has occured
     void check_fatal()
@@ -302,13 +315,14 @@ private:
     }
 
     /// seeks sensors file & copies it into given buffer
-    void read_file_into_buffer(void* buf)
+    void read_file_into_buffer(void* buf, int socket_count)
     {
+        const size_t total_to_read_bytes = socket_count * OCC_SENSOR_DATA_BLOCK_SIZE;
         // read data from file to buffer
-        lseek(occ_file_fd, chipid * OCC_SENSOR_DATA_BLOCK_SIZE, SEEK_SET);
+        lseek(occ_file_fd, 0, SEEK_SET);
         int rc, bytes;
-        for (bytes = 0; bytes < OCC_SENSOR_DATA_BLOCK_SIZE; bytes += rc) {
-            rc = read(occ_file_fd, (int8_t*)buf + bytes, OCC_SENSOR_DATA_BLOCK_SIZE - bytes);
+        for (bytes = 0; bytes < total_to_read_bytes; bytes += rc) {
+            rc = read(occ_file_fd, (int8_t*)buf + bytes, total_to_read_bytes - bytes);
             if (0 == rc) {
                 fatal("read syscall on occ_sensors file returned 0 bytes");
             }
@@ -318,7 +332,7 @@ private:
         }
 
         // check if read successfull
-        if (bytes != OCC_SENSOR_DATA_BLOCK_SIZE) {
+        if (bytes != total_to_read_bytes) {
             fatal(
                 "read from occ_sensors_file finished, but did not read enough");
         }

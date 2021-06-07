@@ -57,12 +57,12 @@ const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metr
     // structure:
     // OCC-string identifier, bool whether to use accumulator or not
     // name for metric in trace, description, unit
-    {{"PWRSYS", occ_sensor_sample_type::sample},
+    {{"PWRSYS", occ_sensor_sample_type::sample, 0},
      metric_type_constructable(
          "occ_power_system",
          "power intake of the entire system",
          "W", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
-    {{"PWRSYS", occ_sensor_sample_type::acc_derivative},
+    {{"PWRSYS", occ_sensor_sample_type::acc_derivative, 0},
      metric_type_constructable(
          "occ_power_system_from_energy",
          "system power derived from energy",
@@ -96,6 +96,17 @@ const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metr
     //     "occ_power_system_acc_raw_freq",
     //     "samples per second recorded to accumulator",
     //     "Hz", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
+};
+
+const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metric_properties_by_sensor_per_socket = {
+    // structure:
+    // OCC-string identifier, bool whether to use accumulator or not
+    // name for metric in trace, description, unit
+    {{"PWRGPU", occ_sensor_sample_type::sample, 0},
+     metric_type_constructable(
+         "occ_power_gpu",
+         "power intake of connected GPU(s)",
+         "W", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
 };
 
 SCOREP_MetricValueType occ_sensor_t::get_scorep_type() const {

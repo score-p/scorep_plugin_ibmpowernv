@@ -49,7 +49,7 @@ enum occ_sensor_sample_type {
 
 /// contains all information required to locate a sensor and grab its value
 struct occ_sensor_t {
-    occ_sensor_t(const std::string& name, const occ_sensor_sample_type type) : name(name), type(type)
+    occ_sensor_t(const std::string& name, const occ_sensor_sample_type type, const size_t socket_num) : name(name), type(type), socket_num(socket_num)
     {
     }
     occ_sensor_t()
@@ -60,11 +60,16 @@ struct occ_sensor_t {
     std::string name;
     /// what part of the record to record
     occ_sensor_sample_type type = occ_sensor_sample_type::timestamp;
+    /// socket (or "chipid") of the sensor
+    size_t socket_num = 0;
 
     SCOREP_MetricValueType get_scorep_type() const;
 
     /// metric properties for all supported *global* sensors (only present on first socket)
     static const std::map<occ_sensor_t, scorep::plugin::metric_property> metric_properties_by_sensor_master_only;
+
+    /// metric properties for all supported sensors for *every* chip/socket (will be created once per socket)
+    static const std::map<occ_sensor_t, scorep::plugin::metric_property> metric_properties_by_sensor_per_socket;
 };
 typedef struct occ_sensor_t occ_sensor_t;
 
