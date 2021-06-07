@@ -116,6 +116,14 @@ SCOREP_MetricValueType occ_sensor_t::get_scorep_type() const {
         }
     }
 
+    for (const auto it : occ_sensor_t::metric_properties_by_sensor_per_socket) {
+        // do not compare socket num
+        // note: "name" is sth like "PWRSYS" in this context, not the scorep identifier
+        if (it.first.type == type && it.first.name == name ) {
+            return it.second.type;
+        }
+    }
+
     throw std::runtime_error("can't identify datatype for sensor " + name + " with type " + std::to_string(type));
 }
 
