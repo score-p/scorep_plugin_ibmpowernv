@@ -64,7 +64,6 @@ class ibmpowernv_plugin
                                   scorep::plugin::policy::per_host,
                                   occ_sensor_policy> {
 public:
-    /// id of the chip to be used; testing suggests leaving it at 0 is best
     ibmpowernv_plugin()
     {
         sampling_interval = get_ns_from_str(
@@ -331,6 +330,7 @@ private:
         }
     }
 
+    /// throw a fatal error
     void fatal(const std::string msg)
     {
         fatal_occured = true;

@@ -60,12 +60,15 @@ public:
     }
 };
 
+// note: these sensors get collected *only for the first socket*
+// reference: "OCC Firmware Interface Specificationfor POWER9" <https://raw.githubusercontent.com/open-power/docs/master/occ/OCC_P9_FW_Interfaces.pdf> "11.3.2.2 Power Sensors", p. 149
 const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metric_properties_by_sensor_master_only = {
-    // to add a sensor + derived-from-acc w/ double you can use this macro:
+    // to add a sensor + derived-from-acc w/ type double you can use this macro:
+    // this adds "occ_power_system" and "occ_power_system_from_energy"
     OCC_PLUGIN_ADD_SENSOR_DEFAULT("PWRSYS", "occ_power_system", "power intake of the entire system", "W"),
 
     // to manually specify sensors use this structure:
-    // OCC-string identifier, bool whether to use accumulator or not
+    // OCC-string identifier, how/what should be recorded (sample, frequency, derived from accumulator...)
     // name for metric in trace, description, unit
     //
     // example:
@@ -109,12 +112,17 @@ const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metr
 };
 
 const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metric_properties_by_sensor_per_socket = {
-    // works same as above, but the socket number is ignored (but still required)
+    // works same as above
+    // is queried for each socket, the final property is built by appending ".SOCKETNUM" (starting w/ 0)
+    // -> this yields "occ_power_gpu.0" and "occ_power_gpu_from_energy.0", "occ_power_gpu.1", "occ_power_gpu_from_energy.1"...
     OCC_PLUGIN_ADD_SENSOR_DEFAULT("PWRGPU", "occ_power_gpu", "power consumption of attached GPU(s)", "W"),
     OCC_PLUGIN_ADD_SENSOR_DEFAULT("PWRPROC", "occ_power_proc", "power consumption for this processor", "W"),
     OCC_PLUGIN_ADD_SENSOR_DEFAULT("PWRVDD", "occ_power_vdd", "power consumption for this processor's vdd", "W"),
     OCC_PLUGIN_ADD_SENSOR_DEFAULT("PWRVDN", "occ_power_vdn", "power consumption for this processor's vdn", "W"),
     OCC_PLUGIN_ADD_SENSOR_DEFAULT("PWRMEM", "occ_power_mem", "power consumption for this processor's memory", "W"),
+
+    // when adding sensors w/o the macro keep in mind that you *have* to provide a socket number for the `occ_sensor_t` data structure
+    // this number will be ignored during processing of this sensor list
 };
 
 SCOREP_MetricValueType occ_sensor_t::get_scorep_type() const {
