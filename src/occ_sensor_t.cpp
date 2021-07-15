@@ -35,6 +35,13 @@
 #include <string>
 #include <stdexcept>
 
+#define OCC_PLUGIN_ADD_SENSOR_DEFAULT(occ_str, scorep_str, desc, unit) \
+    {{occ_str, occ_sensor_sample_type::sample, 0},\
+     metric_type_constructable(scorep_str, desc, unit, SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},\
+    {{occ_str, occ_sensor_sample_type::acc_derivative, 0},\
+     metric_type_constructable(scorep_str "_from_energy", desc " (derived from accumulator)", unit, SCOREP_METRIC_MODE_ABSOLUTE_LAST, SCOREP_METRIC_VALUE_DOUBLE)}
+
+
 /// helper class to allow setting all attributes of scorep::plugin::metric_property from constructor
 class metric_type_constructable : public scorep::plugin::metric_property {
 public:
@@ -53,24 +60,30 @@ public:
     }
 };
 
-const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metric_properties_by_sensor = {
-    // structure:
-    // OCC-string identifier, bool whether to use accumulator or not
+// note: these sensors get collected *only for the first socket*
+// reference: "OCC Firmware Interface Specificationfor POWER9" <https://raw.githubusercontent.com/open-power/docs/master/occ/OCC_P9_FW_Interfaces.pdf> "11.3.2.2 Power Sensors", p. 149
+const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metric_properties_by_sensor_master_only = {
+    // to add a sensor + derived-from-acc w/ type double you can use this macro:
+    // this adds "occ_power_system" and "occ_power_system_from_energy"
+    OCC_PLUGIN_ADD_SENSOR_DEFAULT("PWRSYS", "occ_power_system", "power intake of the entire system", "W"),
+
+    // to manually specify sensors use this structure:
+    // OCC-string identifier, how/what should be recorded (sample, frequency, derived from accumulator...)
     // name for metric in trace, description, unit
-    {{"PWRSYS", occ_sensor_sample_type::sample},
-     metric_type_constructable(
-         "occ_power_system",
-         "power intake of the entire system",
-         "W", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
-    {{"PWRSYS", occ_sensor_sample_type::acc_derivative},
-     metric_type_constructable(
-         "occ_power_system_from_energy",
-         "system power derived from energy",
-         "W", SCOREP_METRIC_MODE_ABSOLUTE_LAST, SCOREP_METRIC_VALUE_DOUBLE)},
+    //
+    // example:
+    //{{"PWRSYS", occ_sensor_sample_type::sample, 0},
+    // metric_type_constructable(
+    //     "occ_power_system",
+    //     "power intake of the entire system",
+    //     "W", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
+    //{{"PWRSYS", occ_sensor_sample_type::acc_derivative, 0},
+    // metric_type_constructable(
+    //     "occ_power_system_from_energy",
+    //     "system power derived from energy",
+    //     "W", SCOREP_METRIC_MODE_ABSOLUTE_LAST, SCOREP_METRIC_VALUE_DOUBLE)},
 
     // other metrics that are usually only required for testing. uncomment and recompile to enable
-    // vvv
-
     //{{"PWRSYS", occ_sensor_sample_type::acc},
     // metric_type_constructable(
     //     "occ_power_system_acc",
@@ -98,9 +111,31 @@ const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metr
     //     "Hz", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
 };
 
+const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metric_properties_by_sensor_per_socket = {
+    // works same as above
+    // is queried for each socket, the final property is built by appending ".SOCKETNUM" (starting w/ 0)
+    // -> this yields "occ_power_gpu.0" and "occ_power_gpu_from_energy.0", "occ_power_gpu.1", "occ_power_gpu_from_energy.1"...
+    OCC_PLUGIN_ADD_SENSOR_DEFAULT("PWRGPU", "occ_power_gpu", "power consumption of attached GPU(s)", "W"),
+    OCC_PLUGIN_ADD_SENSOR_DEFAULT("PWRPROC", "occ_power_proc", "power consumption for this processor", "W"),
+    OCC_PLUGIN_ADD_SENSOR_DEFAULT("PWRVDD", "occ_power_vdd", "power consumption for this processor's vdd", "W"),
+    OCC_PLUGIN_ADD_SENSOR_DEFAULT("PWRVDN", "occ_power_vdn", "power consumption for this processor's vdn", "W"),
+    OCC_PLUGIN_ADD_SENSOR_DEFAULT("PWRMEM", "occ_power_mem", "power consumption for this processor's memory", "W"),
+
+    // when adding sensors w/o the macro keep in mind that you *have* to provide a socket number for the `occ_sensor_t` data structure
+    // this number will be ignored during processing of this sensor list
+};
+
 SCOREP_MetricValueType occ_sensor_t::get_scorep_type() const {
-    for (const auto it : occ_sensor_t::metric_properties_by_sensor) {
+    for (const auto it : occ_sensor_t::metric_properties_by_sensor_master_only) {
         if (*this == it.first) {
+            return it.second.type;
+        }
+    }
+
+    for (const auto it : occ_sensor_t::metric_properties_by_sensor_per_socket) {
+        // do not compare socket num
+        // note: "name" is sth like "PWRSYS" in this context, not the scorep identifier
+        if (it.first.type == type && it.first.name == name ) {
             return it.second.type;
         }
     }
@@ -114,9 +149,13 @@ bool operator<(const occ_sensor_t& lhs, const occ_sensor_t& rhs)
         return lhs.name < rhs.name;
     }
 
-    return lhs.type < rhs.type;
+    if (lhs.type != rhs.type) {
+        return lhs.type < rhs.type;
+    }
+
+    return lhs.socket_num < rhs.socket_num;
 }
 
 bool operator==(const occ_sensor_t& lhs, const occ_sensor_t& rhs) {
-    return lhs.name == rhs.name && lhs.type == rhs.type;
+    return lhs.name == rhs.name && lhs.type == rhs.type && lhs.socket_num == rhs.socket_num;
 }

@@ -9,6 +9,9 @@ This plugin tracks the power consumption of a Power 9-system.
 - `SCOREP_METRIC_IBMPOWERNV_PLUGIN_INTERVAL` (optional, default: 10ms, case sensitive)
     Interval of testing.
     The value is a duration string which will be parsed, e.g. `100ms`.
+- `SCOREP_METRIC_IBMPOWERNV_PLUGIN_SOCKETS` (optional, default: 2)
+    Number of sockets to create sensors for.
+    Must be at least 1.
     
 ### Testing
 For testing grab [a sample occ inband sensors file](https://github.com/score-p/scorep_plugin_ibmpowernv/wiki/occ_inband_sensors_20210301T090454Z) and set the environment variable `SCOREP_METRIC_IBMPOWERNV_PLUGIN_OCC_FILENAME` to its location.

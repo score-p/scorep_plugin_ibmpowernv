@@ -59,12 +59,16 @@ std::map<std::string, std::set<occ_sensor_t>> get_sensors_by_occid(const std::se
     return m;
 }
 
-std::map<occ_sensor_t, all_sample_data> get_sensor_values(void* buf, const std::set<occ_sensor_t>& requested_sensors)
+static std::map<occ_sensor_t, all_sample_data> get_sensor_values_single_socket(void* buf, const std::set<occ_sensor_t>& requested_sensors, const int socket_num)
 {
     std::map<occ_sensor_t, all_sample_data> values_by_sensor;
     auto sensors_by_occid = get_sensors_by_occid(requested_sensors);
 
-    struct occ_sensor_data_header* hb = (struct occ_sensor_data_header*)(uint64_t)buf;
+    // note: apply offset for current socket
+    // this looks a little strange, so let me elaborate briefly:
+    // cast buf to uint8_t, so any addition by operator+ is in byte
+    // then add the required offset and cast to final type
+    struct occ_sensor_data_header* hb = (struct occ_sensor_data_header*)((uint8_t*)buf + socket_num * OCC_SENSOR_DATA_BLOCK_SIZE);
     struct occ_sensor_name* md =
         (struct occ_sensor_name*)((uint64_t)hb + be32toh(hb->names_offset));
 
@@ -73,6 +77,11 @@ std::map<occ_sensor_t, all_sample_data> get_sensor_values(void* buf, const std::
         // check if current sensor is in requested_sensors
         if (sensors_by_occid.find(md[i].name) != sensors_by_occid.end()) {
             for (const auto& sensor : sensors_by_occid[md[i].name]) {
+                if (sensor.socket_num != socket_num) {
+                    // skip all sensors not on current chip
+                    continue;
+                }
+
                 // declare vars here (declarations inside switch-case are forbidden/ugly)
                 uint32_t scale, freq;
                 uint64_t sample, energy, timestamp, update_tag;
@@ -125,6 +134,20 @@ std::map<occ_sensor_t, all_sample_data> get_sensor_values(void* buf, const std::
                     break;
                 }
             }
+        }
+    }
+
+    return values_by_sensor;
+}
+
+std::map<occ_sensor_t, all_sample_data> get_sensor_values(void* buf, const std::set<occ_sensor_t>& requested_sensors, const int socket_count)
+{
+    std::map<occ_sensor_t, all_sample_data> values_by_sensor;
+
+    // iterate over all sockets
+    for (size_t socket_num = 0; socket_num < socket_count; socket_num++) {
+        for (const auto it : get_sensor_values_single_socket(buf, requested_sensors, socket_num)) {
+            values_by_sensor[it.first] = it.second;
         }
     }
 
