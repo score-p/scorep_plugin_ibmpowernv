@@ -103,7 +103,7 @@ public:
 
             // global metrics (only available on first socket)
             for (const auto& it : occ_sensor_t::metric_properties_by_sensor_master_only) {
-                make_handle(it.second.name, it.first.name, it.first.type, it.first.socket_num);
+                make_handle(it.second.name, it.first.name, it.first.type, it.first.socket_num, it.first.quantity);
                 result.push_back(it.second);
             }
 
@@ -113,7 +113,7 @@ public:
                     auto scorep_metric = it.second;
                     scorep_metric.name += "." + std::to_string(socket_num);
                     // !! use socket_num from loop and not from map
-                    make_handle(scorep_metric.name, it.first.name, it.first.type, socket_num);
+                    make_handle(scorep_metric.name, it.first.name, it.first.type, socket_num, it.first.quantity);
                     result.push_back(scorep_metric);
                 }
             }
@@ -219,6 +219,7 @@ public:
 
             // read occ file
             times_.push_back(scorep::chrono::measurement_clock::now());
+            system_times_.push_back(std::chrono::system_clock::now());
             read_file_into_buffer(raw_occ_buffer.get(), socket_count);
 
             // parse data from file & store values
@@ -260,18 +261,35 @@ public:
 
         // write buffered measurements for given sensor
         if (occ_sensor_sample_type::acc_derivative == sensor.type) {
-            // derive actual value from acc
-            double last_acc = value_buffers_by_sensor[sensor][0].acc_raw;
-            for (int i = 0; i < times_.size(); i++) {
-                double current_acc = value_buffers_by_sensor[sensor][i].acc_raw;
-                if (current_acc > last_acc) {
-                    // only act on change & no overflow (which happens after 2^64s = ~416 days, but never trust input)
-                    // "update_tag" describes the (total) number of samples present in the acc -> extract delta
-                    double delta_samples = value_buffers_by_sensor[sensor][i].update_tag - value_buffers_by_sensor[sensor][i-1].update_tag;
-                    double power = (current_acc - last_acc) / delta_samples;
-                    c.write(times_[i], power);
+            if (sensor.quantity == "W")
+            {
+                // derive actual value from acc
+                double last_acc = value_buffers_by_sensor[sensor][0].acc_raw;
+                for (int i = 0; i < times_.size(); i++) {
+                    double current_acc = value_buffers_by_sensor[sensor][i].acc_raw;
+                    if (current_acc > last_acc) {
+                        // only act on change & no overflow (which happens after 2^64s = ~416 days, but never trust input)
+                        // "update_tag" describes the (total) number of samples present in the acc -> extract delta
+                        double delta_samples = value_buffers_by_sensor[sensor][i].update_tag - value_buffers_by_sensor[sensor][i-1].update_tag;
+                        double power = (current_acc - last_acc) / delta_samples;
+                        c.write(times_[i], power);
+                    }
+                    last_acc = current_acc;
                 }
-                last_acc = current_acc;
+            } else if (sensor.quantity == "J")
+            {
+                double first_acc = value_buffers_by_sensor[sensor][0].acc_raw;
+                for (int i = 0; i < times_.size(); i++) {
+                    double current_acc = value_buffers_by_sensor[sensor][i].acc_raw;
+                    if (current_acc > first_acc) {
+                        // only act on change & no overflow (which happens after 2^64s = ~416 days, but never trust input)
+                        // "update_tag" describes the (total) number of samples present in the acc -> extract delta
+                        double delta_samples = value_buffers_by_sensor[sensor][i].update_tag - value_buffers_by_sensor[sensor][0].update_tag;
+                        std::chrono::duration<double> delta_time = system_times_[i] - system_times_[0];
+                        double energy = (current_acc - first_acc) / delta_samples * delta_time.count();
+                        c.write(times_[i], energy);
+                    }
+                }
             }
         } else {
             // normal sensor -> just copy value
@@ -306,6 +324,9 @@ private:
     std::thread collection_thread;
     /// points in time when measurements have been taken
     std::vector<scorep::chrono::ticks> times_;
+    /// points in time when measurements have been taken
+    std::vector<std::chrono::time_point<std::chrono::system_clock>> system_times_;
+
     /// interval at which the collection_thread should make measurements
     std::chrono::nanoseconds sampling_interval;
     /// TODO change type (WTF wall clock time?!)
