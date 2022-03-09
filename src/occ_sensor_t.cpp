@@ -38,6 +38,8 @@
 #define OCC_PLUGIN_ADD_SENSOR_DEFAULT(occ_str, scorep_str, desc, unit) \
     {{occ_str, occ_sensor_sample_type::sample, 0},\
      metric_type_constructable(scorep_str, desc, unit, SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},\
+    {{occ_str, occ_sensor_sample_type::acc_derivative, 0, "J"},\
+     metric_type_constructable(scorep_str "_energy", desc " (energy)", "J", SCOREP_METRIC_MODE_ACCUMULATED_LAST, SCOREP_METRIC_VALUE_DOUBLE)},\
     {{occ_str, occ_sensor_sample_type::acc_derivative, 0},\
      metric_type_constructable(scorep_str "_from_energy", desc " (derived from accumulator)", unit, SCOREP_METRIC_MODE_ABSOLUTE_LAST, SCOREP_METRIC_VALUE_DOUBLE)}
 
@@ -153,9 +155,13 @@ bool operator<(const occ_sensor_t& lhs, const occ_sensor_t& rhs)
         return lhs.type < rhs.type;
     }
 
+    if (lhs.quantity != rhs.quantity) {
+        return lhs.quantity < rhs.quantity;
+    }
+
     return lhs.socket_num < rhs.socket_num;
 }
 
 bool operator==(const occ_sensor_t& lhs, const occ_sensor_t& rhs) {
-    return lhs.name == rhs.name && lhs.type == rhs.type && lhs.socket_num == rhs.socket_num;
+    return lhs.name == rhs.name && lhs.type == rhs.type && lhs.socket_num == rhs.socket_num && lhs.quantity == rhs.quantity;
 }
