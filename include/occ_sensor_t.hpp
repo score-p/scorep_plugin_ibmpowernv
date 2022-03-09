@@ -32,6 +32,7 @@
 
 #include <map>
 #include <string>
+#include <ostream>
 
 #include <scorep/SCOREP_MetricTypes.h>
 #include <scorep/plugin/plugin.hpp>
@@ -79,6 +80,13 @@ typedef struct occ_sensor_t occ_sensor_t;
 
 bool operator<(const occ_sensor_t& lhs, const occ_sensor_t& rhs);
 bool operator==(const occ_sensor_t& lhs, const occ_sensor_t& rhs);
+
+inline std::ostream& operator<<(std::ostream& os, const occ_sensor_t& sensor) 
+{
+    os << sensor.name << ':' << sensor.socket_num << ':' << sensor.type << ":"
+       << sensor.quantity;
+    return os;
+}
 
 template <typename T, typename Policies>
 using occ_sensor_policy = scorep::plugin::policy::object_id<occ_sensor_t, T, Policies>;
