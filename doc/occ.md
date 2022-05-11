@@ -1,5 +1,6 @@
 # OCC
-This document sketches the interface of the OCC.
+This document sketches the interface of the OCC as it is used here.
+(The OCC interface has further capabilities, though they are not used and hence not discussed here.)
 
 ## See also
 - [OCC doc](https://raw.githubusercontent.com/open-power/docs/master/occ/OCC_P9_FW_Interfaces.pdf),
@@ -10,7 +11,7 @@ This document sketches the interface of the OCC.
 The data is dumped into a file `/sys/firmware/opal/exports/occ_inband_sensors`, owned by root with read-only permissions for root only.
 This file contains one data block per OCC (i.e. per processor).
 
-Notably some sensor are **only on the first** OCC.
+Notably some sensors are **only on the first** OCC.
 
 The data block is separated into a header section (describes all sensors) and two data buffers,
 from which at least one is available.
