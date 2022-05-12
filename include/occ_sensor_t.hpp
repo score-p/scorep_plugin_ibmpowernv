@@ -32,6 +32,7 @@
 
 #include <map>
 #include <string>
+#include <ostream>
 
 #include <scorep/SCOREP_MetricTypes.h>
 #include <scorep/plugin/plugin.hpp>
@@ -47,9 +48,12 @@ enum occ_sensor_sample_type {
     acc_derivative,
 };
 
+/// str names for occ_sensor_sample_type, used for debugging output
+extern const std::map<occ_sensor_sample_type, std::string> name_by_occ_sensor_sample_type;
+
 /// contains all information required to locate a sensor and grab its value
 struct occ_sensor_t {
-    occ_sensor_t(const std::string& name, const occ_sensor_sample_type type, const size_t socket_num) : name(name), type(type), socket_num(socket_num)
+    occ_sensor_t(const std::string& name, const occ_sensor_sample_type type, const size_t socket_num, const std::string& quantity="W") : name(name), type(type), socket_num(socket_num), quantity(quantity)
     {
     }
     occ_sensor_t()
@@ -63,7 +67,11 @@ struct occ_sensor_t {
     /// socket (or "chipid") of the sensor
     size_t socket_num = 0;
 
+    std::string quantity;
+
     SCOREP_MetricValueType get_scorep_type() const;
+
+
 
     /// metric properties for all supported *global* sensors (only present on first socket)
     static const std::map<occ_sensor_t, scorep::plugin::metric_property> metric_properties_by_sensor_master_only;
@@ -75,6 +83,13 @@ typedef struct occ_sensor_t occ_sensor_t;
 
 bool operator<(const occ_sensor_t& lhs, const occ_sensor_t& rhs);
 bool operator==(const occ_sensor_t& lhs, const occ_sensor_t& rhs);
+
+inline std::ostream& operator<<(std::ostream& os, const occ_sensor_t& sensor) 
+{
+    os << sensor.name << ':' << sensor.socket_num << ':' << name_by_occ_sensor_sample_type.at(sensor.type) << ":"
+       << sensor.quantity;
+    return os;
+}
 
 template <typename T, typename Policies>
 using occ_sensor_policy = scorep::plugin::policy::object_id<occ_sensor_t, T, Policies>;

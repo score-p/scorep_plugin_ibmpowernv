@@ -3,6 +3,7 @@ This plugin tracks the power consumption of a Power 9-system.
 
 ## Usage
 ### Environment Variables
+#### Async Plugin
 - `SCOREP_METRIC_PLUGINS=ibmpowernv_plugin`
 - `SCOREP_METRIC_IBMPOWERNV_PLUGIN` (required)
     `*` (for all) OR comma-separated list of metrics to collect. See [here](src/occ_sensor_t.cpp) for available metrics.
@@ -12,7 +13,19 @@ This plugin tracks the power consumption of a Power 9-system.
 - `SCOREP_METRIC_IBMPOWERNV_PLUGIN_SOCKETS` (optional, default: 2)
     Number of sockets to create sensors for.
     Must be at least 1.
-    
+
+#### Strict-Sync Plugin
+- `SCOREP_METRIC_PLUGINS=ibmpowernv_sync_plugin`
+- `SCOREP_METRIC_IBMPOWERNV_SYNC_PLUGIN` (required)
+    `*` adds all metrics. (any other value is forbidden)
+- `SCOREP_METRIC_IBMPOWERNV_PLUGIN_INTERVAL` (optional, default: 10ms, case sensitive)
+    minimal intervall beteween two measurments.
+    If the distance between two events is shorter, the same value might be reported.
+    The value is a duration string which will be parsed, e.g. `100ms`.
+- `SCOREP_METRIC_IBMPOWERNV_PLUGIN_SOCKETS` (optional, default: 2)
+    Number of sockets to create sensors for.
+    Must be at least 1.
+
 ### Testing
 For testing grab [a sample occ inband sensors file](https://github.com/score-p/scorep_plugin_ibmpowernv/wiki/occ_inband_sensors_20210301T090454Z) and set the environment variable `SCOREP_METRIC_IBMPOWERNV_PLUGIN_OCC_FILENAME` to its location.
 Provided your built `libibmpowernv_plugin.so` is in the current directory and you have [lo2s](https://github.com/tud-zih-energy/lo2s) installed, use this to generate a sample test trace:
