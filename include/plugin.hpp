@@ -178,7 +178,7 @@ public:
         }
 
         running = true;
-        last_measurement_ = std::chrono::system_clock::now();
+        last_measurement_ = std::chrono::steady_clock::now();
         collection_thread = std::thread([&]() { this->exec(); });
         logging::info() << "started recording of "
                         << value_buffers_by_sensor.size() << " sensors";
@@ -219,7 +219,7 @@ public:
 
             // read occ file
             times_.push_back(scorep::chrono::measurement_clock::now());
-            system_times_.push_back(std::chrono::system_clock::now());
+            system_times_.push_back(std::chrono::steady_clock::now());
             read_file_into_buffer(raw_occ_buffer.get(), socket_count);
 
             // parse data from file & store values
@@ -228,7 +228,7 @@ public:
             }
 
             // skip forward to next measurement point
-            while (last_measurement_ < std::chrono::system_clock::now()) {
+            while (last_measurement_ < std::chrono::steady_clock::now()) {
                 last_measurement_ += sampling_interval;
             }
             std::this_thread::sleep_until(last_measurement_);
@@ -322,16 +322,16 @@ private:
     std::atomic<bool> running = false;
     /// thread that will collect actual measurements
     std::thread collection_thread;
-    /// points in time when measurements have been taken
+    /// points in time when measurements have been taken as scorep timestamps
     std::vector<scorep::chrono::ticks> times_;
-    /// points in time when measurements have been taken
-    std::vector<std::chrono::time_point<std::chrono::system_clock>> system_times_;
+    /// points in time when measurements have been taken as clock time (used for computations)
+    std::vector<std::chrono::time_point<std::chrono::steady_clock>> system_times_;
 
     /// interval at which the collection_thread should make measurements
     std::chrono::nanoseconds sampling_interval;
-    /// TODO change type (WTF wall clock time?!)
-    std::chrono::system_clock::time_point last_measurement_ =
-        std::chrono::system_clock::now();
+    /// time point of last measurement, used to align measurement interval
+    std::chrono::steady_clock::time_point last_measurement_ =
+        std::chrono::steady_clock::now();
     /// file descriptor for the opened occ_inband_sensors file
     int occ_file_fd;
     /// recorded values for each senso
