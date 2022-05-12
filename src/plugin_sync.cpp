@@ -61,7 +61,6 @@ ibmpowernv_sync_plugin::ibmpowernv_sync_plugin()
     }
 
     logging::info() << "ibmpowernv_sync plugin constructed";
-    std::cout << "logging is doof" << std::endl;
 }
 
 std::vector<scorep::plugin::metric_property> ibmpowernv_sync_plugin::get_metric_properties(
@@ -70,7 +69,6 @@ std::vector<scorep::plugin::metric_property> ibmpowernv_sync_plugin::get_metric_
     check_fatal();
 
     logging::debug() << "received get_metric_properties(" << pattern << ")";
-    std::cout << "metric " << pattern << " wird geladen " << std::endl;
 
     std::vector<scorep::plugin::metric_property> properties;
     if (metric_properties_added) {
@@ -191,11 +189,6 @@ void ibmpowernv_sync_plugin::get_current_value(const occ_sensor_t& sensor, Proxy
                 << " time: " << time_diff.count() << "s energy: " << energy;
 
             p.write(energy); // energy since the beginning
-
-            /* energy is in Joule, teturn in mJ
-             * still legacy PTF compatibility, can't we move to FLOAT?
-             */
-            // proxy.store((int64_t)(energy * 1000));
         }
         else {
             throw std::runtime_error("unkonw quantity");
@@ -207,22 +200,18 @@ void ibmpowernv_sync_plugin::get_current_value(const occ_sensor_t& sensor, Proxy
             logging::trace()
                 << sensor << " --> fp64: " << current_measurement_data[sensor].fp64;
             p.write(current_measurement_data[sensor].fp64);
-
-            // std::cout << it.second.fp64 << "f\n";
             break;
 
         case SCOREP_METRIC_VALUE_INT64:
             logging::trace() << sensor << " --> int_signed: "
                              << current_measurement_data[sensor].int_signed;
             p.write(current_measurement_data[sensor].int_signed);
-            // std::cout << it.second.int_signed << "s\n";
             break;
 
         case SCOREP_METRIC_VALUE_UINT64:
             logging::trace() << sensor << " --> int_unsigned: "
                              << current_measurement_data[sensor].int_unsigned;
             p.write(current_measurement_data[sensor].int_unsigned);
-            // std::cout << it.second.int_unsigned << "u\n";
             break;
 
         default:
