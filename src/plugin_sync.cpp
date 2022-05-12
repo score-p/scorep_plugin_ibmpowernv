@@ -31,7 +31,6 @@
 #include <plugin_sync.hpp>
 
 #ifdef HAVE_MPI
-// not tested ...
 #include <mpi.h>
 #endif
 
@@ -230,7 +229,7 @@ void ibmpowernv_sync_plugin::synchronize(bool is_responsible, SCOREP_MetricSynch
     logging::debug() << "Synchronize " << is_responsible << ", " << sync_mode;
     if (is_responsible) {
         switch (sync_mode) {
-        case SCOREP_METRIC_SYNCHRONIZATION_MODE_BEGIN: {
+        case SCOREP_METRIC_SYNCHRONIZATION_MODE_BEGIN:
             logging::debug() << "SCOREP_METRIC_SYNCHRONIZATION_MODE_BEGIN";
 
             this->is_resposible = true;
@@ -238,32 +237,35 @@ void ibmpowernv_sync_plugin::synchronize(bool is_responsible, SCOREP_MetricSynch
             logging::debug() << "got responsible ptid:" << this->responsible_thread;
 
             break;
-        }
-        case SCOREP_METRIC_SYNCHRONIZATION_MODE_BEGIN_MPP: {
+
+        case SCOREP_METRIC_SYNCHRONIZATION_MODE_BEGIN_MPP:
             logging::debug() << "SCOREP_METRIC_SYNCHRONIZATION_MODE_BEGIN_MPP";
 
 #ifdef HAVE_MPI
             std::hash<std::string> mpi_color_hash;
             MPI_Comm node_local_comm;
-            int myrank;
-            int new_myrank;
+            int myrank_global;
+            int myrank_local_node;
 
             // TODO
-            // we are assuming, that this is unique enough ....
+            // we are assuming, that the truncated hash (from size_t to int) of the hostname is unique enough to identify a node
             // we probably need a rework here
             int hash = abs(mpi_color_hash(this->hostname));
 
-            logging::debug() << "hash value: " << hash;
+            logging::debug() << "node identification hash value: " << hash;
 
-            MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
-            MPI_Comm_split(MPI_COMM_WORLD, hash, myrank, &node_local_comm);
-            MPI_Comm_rank(node_local_comm, &new_myrank);
+            MPI_Comm_rank(MPI_COMM_WORLD, &myrank_global);
+            MPI_Comm_split(MPI_COMM_WORLD, hash, myrank_global, &node_local_comm);
+            MPI_Comm_rank(node_local_comm, &myrank_local_node);
 
-            if (new_myrank == 0) {
+            // only one (the first) rank per node is responsible to collect actual measurement data
+            if (myrank_local_node == 0) {
                 this->is_resposible = true;
                 logging::debug() << "got responsible process for host: " << this->hostname;
             }
             else {
+                // this rank is not the first of this node
+                // -> another rank will record data, this one does not have to
                 this->is_resposible = false;
             }
 
@@ -281,13 +283,12 @@ void ibmpowernv_sync_plugin::synchronize(bool is_responsible, SCOREP_MetricSynch
             logging::debug() << "got responsible ptid:" << this->responsible_thread;
 #endif
             break;
-        }
-        case SCOREP_METRIC_SYNCHRONIZATION_MODE_END: {
+
+        case SCOREP_METRIC_SYNCHRONIZATION_MODE_END:
             break;
-        }
-        case SCOREP_METRIC_SYNCHRONIZATION_MODE_MAX: {
+
+        case SCOREP_METRIC_SYNCHRONIZATION_MODE_MAX:
             break;
-        }
         }
     }
 }
