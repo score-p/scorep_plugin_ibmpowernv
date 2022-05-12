@@ -92,22 +92,25 @@ private:
     std::chrono::steady_clock::time_point init_measurement =
         std::chrono::steady_clock::now();
 
-    // last measurment data
+    /// last measurment data, only filled for acc_derivative metrics
     std::map<occ_sensor_t, all_sample_data> last_measurement_data;
+    /// timestamp of last_measurement_data
     std::map<occ_sensor_t, std::chrono::steady_clock::time_point> last_measurement;
 
-    // current measurment data
+    /// current measurment data, used for returning cached results
     std::map<occ_sensor_t, all_sample_data> current_measurement_data;
+    /// timestamp of current_measurement_data
     std::chrono::steady_clock::time_point current_measurement =
         std::chrono::steady_clock::now();
 
     /// number of sockets to read from
     std::atomic<int> socket_count = 2;
 
-    /** sync stuff, caus we are strict sync
-     */
+    /// hostname of current machine, used for identification
     std::string hostname;
+    /// true iff this instance is of the **rank** responsible to record data for this host
     bool is_resposible = false;
+    /// if this *rank* is responsible: ID of the thread responsible for data recording
     pid_t responsible_thread = -1;
 
     bool metric_properties_added = false;
