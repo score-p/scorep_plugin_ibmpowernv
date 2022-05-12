@@ -17,7 +17,7 @@ This plugin tracks the power consumption of a Power 9-system.
 #### Strict-Sync Plugin
 - `SCOREP_METRIC_PLUGINS=ibmpowernv_sync_plugin`
 - `SCOREP_METRIC_IBMPOWERNV_SYNC_PLUGIN` (required)
-    `*` adds all metrics.
+    `*` adds all metrics. (any other value is forbidden)
 - `SCOREP_METRIC_IBMPOWERNV_PLUGIN_INTERVAL` (optional, default: 10ms, case sensitive)
     minimal intervall beteween two measurments.
     If the distance between two events is shorter, the same value might be reported.

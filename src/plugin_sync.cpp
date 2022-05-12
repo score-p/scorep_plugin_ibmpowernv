@@ -73,8 +73,12 @@ std::vector<scorep::plugin::metric_property> ibmpowernv_sync_plugin::get_metric_
     std::vector<scorep::plugin::metric_property> properties;
     if (metric_properties_added) {
         logging::debug()
-            << "Tried already to add metric properties. Do nothing.";
+            << "Metric properties already added, doing nothing.";
         return properties;
+    }
+
+    if ("*" != pattern) {
+        fatal("only pattern '*' supported");
     }
 
     std::vector<scorep::plugin::metric_property> result;
