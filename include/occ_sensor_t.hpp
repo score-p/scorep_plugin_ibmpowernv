@@ -48,6 +48,9 @@ enum occ_sensor_sample_type {
     acc_derivative,
 };
 
+/// str names for occ_sensor_sample_type, used for debugging output
+extern const std::map<occ_sensor_sample_type, std::string> name_by_occ_sensor_sample_type;
+
 /// contains all information required to locate a sensor and grab its value
 struct occ_sensor_t {
     occ_sensor_t(const std::string& name, const occ_sensor_sample_type type, const size_t socket_num, const std::string& quantity="W") : name(name), type(type), socket_num(socket_num), quantity(quantity)
@@ -83,7 +86,7 @@ bool operator==(const occ_sensor_t& lhs, const occ_sensor_t& rhs);
 
 inline std::ostream& operator<<(std::ostream& os, const occ_sensor_t& sensor) 
 {
-    os << sensor.name << ':' << sensor.socket_num << ':' << sensor.type << ":"
+    os << sensor.name << ':' << sensor.socket_num << ':' << name_by_occ_sensor_sample_type.at(sensor.type) << ":"
        << sensor.quantity;
     return os;
 }

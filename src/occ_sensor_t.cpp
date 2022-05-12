@@ -43,6 +43,15 @@
     {{occ_str, occ_sensor_sample_type::acc_derivative, 0},\
      metric_type_constructable(scorep_str "_from_energy", desc " (derived from accumulator)", unit, SCOREP_METRIC_MODE_ABSOLUTE_LAST, SCOREP_METRIC_VALUE_DOUBLE)}
 
+const std::map<occ_sensor_sample_type, std::string> name_by_occ_sensor_sample_type = {
+    {sample, "sample"},
+    {acc, "acc"},
+    {timestamp, "timestamp"},
+    {update_tag, "update_tag"},
+    {acc_raw, "acc_raw"},
+    {acc_raw_freq, "acc_raw_freq"},
+    {acc_derivative, "acc_derivative"},
+};
 
 /// helper class to allow setting all attributes of scorep::plugin::metric_property from constructor
 class metric_type_constructable : public scorep::plugin::metric_property {
