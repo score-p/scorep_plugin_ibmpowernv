@@ -73,7 +73,7 @@ public:
 
 // note: these sensors get collected *only for the first socket*
 // reference: "OCC Firmware Interface Specificationfor POWER9" <https://raw.githubusercontent.com/open-power/docs/master/occ/OCC_P9_FW_Interfaces.pdf> "11.3.2.2 Power Sensors", p. 149
-const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metric_properties_by_sensor_master_only = {
+const std::map<legacy_occ_sensor_t, scorep::plugin::metric_property> legacy_occ_sensor_t::metric_properties_by_sensor_master_only = {
     // to add a sensor + derived-from-acc w/ type double you can use this macro:
     // this adds "occ_power_system" and "occ_power_system_from_energy"
     OCC_PLUGIN_ADD_SENSOR_DEFAULT("PWRSYS", "occ_power_system", "power intake of the entire system", "W"),
@@ -122,7 +122,7 @@ const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metr
     //     "Hz", SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},
 };
 
-const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metric_properties_by_sensor_per_socket = {
+const std::map<legacy_occ_sensor_t, scorep::plugin::metric_property> legacy_occ_sensor_t::metric_properties_by_sensor_per_socket = {
     // works same as above
     // is queried for each socket, the final property is built by appending ".SOCKETNUM" (starting w/ 0)
     // -> this yields "occ_power_gpu.0" and "occ_power_gpu_from_energy.0", "occ_power_gpu.1", "occ_power_gpu_from_energy.1"...
@@ -132,18 +132,18 @@ const std::map<occ_sensor_t, scorep::plugin::metric_property> occ_sensor_t::metr
     OCC_PLUGIN_ADD_SENSOR_DEFAULT("PWRVDN", "occ_power_vdn", "power consumption for this processor's vdn", "W"),
     OCC_PLUGIN_ADD_SENSOR_DEFAULT("PWRMEM", "occ_power_mem", "power consumption for this processor's memory", "W"),
 
-    // when adding sensors w/o the macro keep in mind that you *have* to provide a socket number for the `occ_sensor_t` data structure
+    // when adding sensors w/o the macro keep in mind that you *have* to provide a socket number for the `legacy_occ_sensor_t` data structure
     // this number will be ignored during processing of this sensor list
 };
 
-SCOREP_MetricValueType occ_sensor_t::get_scorep_type() const {
-    for (const auto it : occ_sensor_t::metric_properties_by_sensor_master_only) {
+SCOREP_MetricValueType legacy_occ_sensor_t::get_scorep_type() const {
+    for (const auto it : legacy_occ_sensor_t::metric_properties_by_sensor_master_only) {
         if (*this == it.first) {
             return it.second.type;
         }
     }
 
-    for (const auto it : occ_sensor_t::metric_properties_by_sensor_per_socket) {
+    for (const auto it : legacy_occ_sensor_t::metric_properties_by_sensor_per_socket) {
         // do not compare socket num
         // note: "name" is sth like "PWRSYS" in this context, not the scorep identifier
         if (it.first.type == type && it.first.name == name ) {
@@ -154,7 +154,7 @@ SCOREP_MetricValueType occ_sensor_t::get_scorep_type() const {
     throw std::runtime_error("can't identify datatype for sensor " + name + " with type " + std::to_string(type));
 }
 
-bool operator<(const occ_sensor_t& lhs, const occ_sensor_t& rhs)
+bool operator<(const legacy_occ_sensor_t& lhs, const legacy_occ_sensor_t& rhs)
 {
     if (lhs.name != rhs.name) {
         return lhs.name < rhs.name;
@@ -171,6 +171,6 @@ bool operator<(const occ_sensor_t& lhs, const occ_sensor_t& rhs)
     return lhs.socket_num < rhs.socket_num;
 }
 
-bool operator==(const occ_sensor_t& lhs, const occ_sensor_t& rhs) {
+bool operator==(const legacy_occ_sensor_t& lhs, const legacy_occ_sensor_t& rhs) {
     return lhs.name == rhs.name && lhs.type == rhs.type && lhs.socket_num == rhs.socket_num && lhs.quantity == rhs.quantity;
 }

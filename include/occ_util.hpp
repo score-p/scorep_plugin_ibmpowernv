@@ -60,7 +60,7 @@ typedef struct all_sample_data all_sample_data;
  * @param sensors sensor to be reorganized
  * @return map: OCC identifiert -> sensor object
  */
-std::map<std::string, std::set<occ_sensor_t>> get_sensors_by_occid(const std::set<occ_sensor_t>& sensors);
+std::map<std::string, std::set<legacy_occ_sensor_t>> get_sensors_by_occid(const std::set<legacy_occ_sensor_t>& sensors);
 
 /**
  * extract a set of sensor values from given occ inband sensors file.
@@ -69,8 +69,8 @@ std::map<std::string, std::set<occ_sensor_t>> get_sensors_by_occid(const std::se
  * @param socket_count number of sockets to search
  * @return map: sensors type -> value from buf
  */
-std::map<occ_sensor_t, all_sample_data> get_sensor_values(void* buf,
-                                                          const std::set<occ_sensor_t>& requested_sensors,
-                                                          const int socket_count);
+std::map<legacy_occ_sensor_t, all_sample_data> get_sensor_values(void* buf,
+                                                                 const std::set<legacy_occ_sensor_t>& requested_sensors,
+                                                                 const int socket_count);
 
 #endif // __SCOREP_IBMPOWERNV_PLUGIN_OCC_UTIL_HPP_INCLUDED__

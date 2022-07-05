@@ -51,12 +51,75 @@ enum occ_sensor_sample_type {
 /// str names for occ_sensor_sample_type, used for debugging output
 extern const std::map<occ_sensor_sample_type, std::string> name_by_occ_sensor_sample_type;
 
+/** type of sensor
+ * Required information to locate a sensor within one OCC sensor **block**
+ *
+ * Must be one of the predefined values from the documentation.
+ *
+ * Can be one of:
+ *
+ * - OCC sensor: sensor which is produced by OCC
+ * - APSS sensor: sensor which is provided by APSS (read via APSS[0-15] from OCC)
+ *
+ * Can be used with a socket number to read its value from the occ inband sensors file.
+ *
+ * see p. 105 & p. 149 of https://raw.githubusercontent.com/open-power/docs/master/occ/OCC_P9_FW_Interfaces.pdf
+ */
+enum occ_power_sensor_type_t {
+    // sensors once per system
+    OCC_SYS,
+
+    // sensors per processor
+    OCC_GPU,
+    OCC_PROC,
+    OCC_VDD,
+    OCC_VDN,
+    OCC_MEM,
+
+    // sensors provided via APSS, ordered by function ID!
+    // -> APSS function id == occ_power_sensor_t::APSS_[name] - occ_power_sensor_t::APSS_NOT_USED
+    APSS_NOT_USED,
+    APSS_MEM_PROC0,
+    APSS_MEM_PROC1,
+    APSS_MEM_PROC2,
+    APSS_MEM_PROC3,
+    APSS_PROC0,
+    APSS_PROC1,
+    APSS_PROC2,
+    APSS_PROC3,
+    APSS_PROC0_CACHE_IO_PCIE,
+    APSS_PROC1_CACHE_IO_PCIE,
+    APSS_PROC2_CACHE_IO_PCIE,
+    APSS_PROC3_CACHE_IO_PCIE,
+    APSS_IO_A,
+    APSS_IO_B,
+    APSS_IO_C,
+    APSS_FANS_A,
+    APSS_FANS_B,
+    APSS_STORAGE_A,
+    APSS_STORAGE_B,
+    APSS_12V_REMOTE_SENSE,
+    APSS_GND_REMOTE_SENSE,
+    APSS_TOTAL_SYSTEM_POWER,
+    APSS_MEMORY_CACHE,
+    APSS_PROC0_GPU0,
+    APSS_MEM_PROC0_0,
+    APSS_MEM_PROC0_1,
+    APSS_MEM_PROC0_2,
+    APSS_12V_STANDBY,
+    APSS_PROC0_GPU1,
+    APSS_PROC0_GPU2,
+    APSS_PROC1_GPU0,
+    APSS_PROC1_GPU1,
+    APSS_PROC1_GPU2,
+};
+
 /// contains all information required to locate a sensor and grab its value
-struct occ_sensor_t {
-    occ_sensor_t(const std::string& name, const occ_sensor_sample_type type, const size_t socket_num, const std::string& quantity="W") : name(name), type(type), socket_num(socket_num), quantity(quantity)
+struct legacy_occ_sensor_t {
+    legacy_occ_sensor_t(const std::string& name, const occ_sensor_sample_type type, const size_t socket_num, const std::string& quantity="W") : name(name), type(type), socket_num(socket_num), quantity(quantity)
     {
     }
-    occ_sensor_t()
+    legacy_occ_sensor_t()
     {
     }
 
@@ -74,17 +137,17 @@ struct occ_sensor_t {
 
 
     /// metric properties for all supported *global* sensors (only present on first socket)
-    static const std::map<occ_sensor_t, scorep::plugin::metric_property> metric_properties_by_sensor_master_only;
+    static const std::map<legacy_occ_sensor_t, scorep::plugin::metric_property> metric_properties_by_sensor_master_only;
 
     /// metric properties for all supported sensors for *every* chip/socket (will be created once per socket)
-    static const std::map<occ_sensor_t, scorep::plugin::metric_property> metric_properties_by_sensor_per_socket;
+    static const std::map<legacy_occ_sensor_t, scorep::plugin::metric_property> metric_properties_by_sensor_per_socket;
 };
-typedef struct occ_sensor_t occ_sensor_t;
+typedef struct legacy_occ_sensor_t legacy_occ_sensor_t;
 
-bool operator<(const occ_sensor_t& lhs, const occ_sensor_t& rhs);
-bool operator==(const occ_sensor_t& lhs, const occ_sensor_t& rhs);
+bool operator<(const legacy_occ_sensor_t& lhs, const legacy_occ_sensor_t& rhs);
+bool operator==(const legacy_occ_sensor_t& lhs, const legacy_occ_sensor_t& rhs);
 
-inline std::ostream& operator<<(std::ostream& os, const occ_sensor_t& sensor) 
+inline std::ostream& operator<<(std::ostream& os, const legacy_occ_sensor_t& sensor) 
 {
     os << sensor.name << ':' << sensor.socket_num << ':' << name_by_occ_sensor_sample_type.at(sensor.type) << ":"
        << sensor.quantity;
@@ -92,6 +155,6 @@ inline std::ostream& operator<<(std::ostream& os, const occ_sensor_t& sensor)
 }
 
 template <typename T, typename Policies>
-using occ_sensor_policy = scorep::plugin::policy::object_id<occ_sensor_t, T, Policies>;
+using occ_sensor_policy = scorep::plugin::policy::object_id<legacy_occ_sensor_t, T, Policies>;
 
 #endif // __SCOREP_IBMPOWERNV_PLUGIN_OCC_SENSOR_T_HPP_INCLUDED__

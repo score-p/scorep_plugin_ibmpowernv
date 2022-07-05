@@ -50,18 +50,18 @@ void all_sample_data::fill(double d) {
     int_unsigned = int_signed;
 }
 
-std::map<std::string, std::set<occ_sensor_t>> get_sensors_by_occid(const std::set<occ_sensor_t>& sensors)
+std::map<std::string, std::set<legacy_occ_sensor_t>> get_sensors_by_occid(const std::set<legacy_occ_sensor_t>& sensors)
 {
-    std::map<std::string, std::set<occ_sensor_t>> m;
+    std::map<std::string, std::set<legacy_occ_sensor_t>> m;
     for (const auto& s : sensors) {
         m[s.name].insert(s);
     }
     return m;
 }
 
-static std::map<occ_sensor_t, all_sample_data> get_sensor_values_single_socket(void* buf, const std::set<occ_sensor_t>& requested_sensors, const int socket_num)
+static std::map<legacy_occ_sensor_t, all_sample_data> get_sensor_values_single_socket(void* buf, const std::set<legacy_occ_sensor_t>& requested_sensors, const int socket_num)
 {
-    std::map<occ_sensor_t, all_sample_data> values_by_sensor;
+    std::map<legacy_occ_sensor_t, all_sample_data> values_by_sensor;
     auto sensors_by_occid = get_sensors_by_occid(requested_sensors);
 
     // note: apply offset for current socket
@@ -140,9 +140,9 @@ static std::map<occ_sensor_t, all_sample_data> get_sensor_values_single_socket(v
     return values_by_sensor;
 }
 
-std::map<occ_sensor_t, all_sample_data> get_sensor_values(void* buf, const std::set<occ_sensor_t>& requested_sensors, const int socket_count)
+std::map<legacy_occ_sensor_t, all_sample_data> get_sensor_values(void* buf, const std::set<legacy_occ_sensor_t>& requested_sensors, const int socket_count)
 {
-    std::map<occ_sensor_t, all_sample_data> values_by_sensor;
+    std::map<legacy_occ_sensor_t, all_sample_data> values_by_sensor;
 
     // iterate over all sockets
     for (size_t socket_num = 0; socket_num < socket_count; socket_num++) {

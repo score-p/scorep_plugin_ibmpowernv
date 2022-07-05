@@ -102,14 +102,14 @@ public:
             // return all metrics
 
             // global metrics (only available on first socket)
-            for (const auto& it : occ_sensor_t::metric_properties_by_sensor_master_only) {
+            for (const auto& it : legacy_occ_sensor_t::metric_properties_by_sensor_master_only) {
                 make_handle(it.second.name, it.first.name, it.first.type, it.first.socket_num, it.first.quantity);
                 result.push_back(it.second);
             }
 
             // socket-local metrics (available on every socket)
             for (size_t socket_num = 0; socket_num < socket_count; socket_num++) {
-                for (const auto& it : occ_sensor_t::metric_properties_by_sensor_per_socket) {
+                for (const auto& it : legacy_occ_sensor_t::metric_properties_by_sensor_per_socket) {
                     auto scorep_metric = it.second;
                     scorep_metric.name += "." + std::to_string(socket_num);
                     // !! use socket_num from loop and not from map
@@ -124,15 +124,15 @@ public:
 
         // create map: metric name -> sensor object (which will in turn be mapped to a metric object)
         // Note: I would love to be the value type a metric_property directly, BUT THE WRAPPER IS NOT SPECIFIED TO SUPPORT THAT
-        std::map<std::string, occ_sensor_t> occ_sensors_by_name;
+        std::map<std::string, legacy_occ_sensor_t> occ_sensors_by_name;
 
         // global sensors
-        for (const auto& it : occ_sensor_t::metric_properties_by_sensor_master_only) {
+        for (const auto& it : legacy_occ_sensor_t::metric_properties_by_sensor_master_only) {
             occ_sensors_by_name[it.second.name] = it.first;
         }
         // socket-local sensors
         for (size_t socket_num = 0; socket_num < socket_count; socket_num++) {
-            for (const auto& it : occ_sensor_t::metric_properties_by_sensor_master_only) {
+            for (const auto& it : legacy_occ_sensor_t::metric_properties_by_sensor_master_only) {
                 auto scorep_metric = it.second;
                 scorep_metric.name += "." + std::to_string(socket_num);
                 auto sensor = it.first;
@@ -151,7 +151,7 @@ public:
             }
 
             auto occ_sensor = occ_sensors_by_name.at(list_entry);
-            auto metric_property = occ_sensor_t::metric_properties_by_sensor_master_only.at(occ_sensor);
+            auto metric_property = legacy_occ_sensor_t::metric_properties_by_sensor_master_only.at(occ_sensor);
             make_handle(metric_property.name, occ_sensor.name, occ_sensor.type, occ_sensor.socket_num);
             result.push_back(metric_property);
         }
@@ -159,7 +159,7 @@ public:
         return result;
     }
 
-    void add_metric(const occ_sensor_t& sensor)
+    void add_metric(const legacy_occ_sensor_t& sensor)
     {
         check_fatal();
         logging::debug() << "adding sensor for recording: " << sensor.name;
@@ -208,7 +208,7 @@ public:
         }
 
         // requested sensors: all keys that have been initialized (with an empty vector)
-        std::set<occ_sensor_t> requested_sensors_set;
+        std::set<legacy_occ_sensor_t> requested_sensors_set;
         std::transform(
             value_buffers_by_sensor.begin(), value_buffers_by_sensor.end(),
             std::inserter(requested_sensors_set, requested_sensors_set.end()),
@@ -237,7 +237,7 @@ public:
     }
 
     template <typename Cursor>
-    void get_all_values(const occ_sensor_t& sensor, Cursor& c)
+    void get_all_values(const legacy_occ_sensor_t& sensor, Cursor& c)
     {
         check_fatal();
 
@@ -334,8 +334,8 @@ private:
         std::chrono::steady_clock::now();
     /// file descriptor for the opened occ_inband_sensors file
     int occ_file_fd;
-    /// recorded values for each senso
-    std::map<occ_sensor_t, std::vector<all_sample_data>> value_buffers_by_sensor;
+    /// recorded values for each sensor
+    std::map<legacy_occ_sensor_t, std::vector<all_sample_data>> value_buffers_by_sensor;
     /// used to convert times
     scorep::chrono::time_convert<> convert;
     /// number of sockets to read from

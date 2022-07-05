@@ -83,7 +83,7 @@ std::vector<scorep::plugin::metric_property> ibmpowernv_sync_plugin::get_metric_
     std::vector<scorep::plugin::metric_property> result;
 
     // global metrics (only available on first socket)
-    for (const auto& it : occ_sensor_t::metric_properties_by_sensor_master_only) {
+    for (const auto& it : legacy_occ_sensor_t::metric_properties_by_sensor_master_only) {
         auto& handle = make_handle(it.second.name, it.first.name, it.first.type,
                                    it.first.socket_num, it.first.quantity);
         result.push_back(it.second);
@@ -92,7 +92,7 @@ std::vector<scorep::plugin::metric_property> ibmpowernv_sync_plugin::get_metric_
 
     // socket-local metrics (available on every socket)
     for (size_t socket_num = 0; socket_num < socket_count; socket_num++) {
-        for (const auto& it : occ_sensor_t::metric_properties_by_sensor_per_socket) {
+        for (const auto& it : legacy_occ_sensor_t::metric_properties_by_sensor_per_socket) {
             auto scorep_metric = it.second;
             scorep_metric.name += "." + std::to_string(socket_num);
             // !! use socket_num from loop and not from map
@@ -121,7 +121,7 @@ std::vector<scorep::plugin::metric_property> ibmpowernv_sync_plugin::get_metric_
     return result;
 }
 
-void ibmpowernv_sync_plugin::add_metric(const occ_sensor_t& sensor)
+void ibmpowernv_sync_plugin::add_metric(const legacy_occ_sensor_t& sensor)
 {
     logging::trace() << "add_metric called";
     check_fatal();
@@ -129,7 +129,7 @@ void ibmpowernv_sync_plugin::add_metric(const occ_sensor_t& sensor)
 }
 
 template <typename Proxy>
-void ibmpowernv_sync_plugin::get_current_value(const occ_sensor_t& sensor, Proxy& p)
+void ibmpowernv_sync_plugin::get_current_value(const legacy_occ_sensor_t& sensor, Proxy& p)
 {
     logging::trace() << "get_current_value called";
     check_fatal();
