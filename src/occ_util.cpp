@@ -160,3 +160,69 @@ std::map<legacy_occ_sensor_t, all_sample_data> get_sensor_values(void* buf, cons
 
     return values_by_sensor;
 }
+
+
+std::map<std::string, std::set<occ_sensor_t>> get_sensors_by_occ_name(const std::set<occ_sensor_t>& sensors)
+{
+    std::map<std::string, std::set<occ_sensor_t>> m;
+    for (const auto& s : sensors) {
+        m[s.get_occ_name()].insert(s);
+    }
+    return m;
+}
+
+static std::map<occ_sensor_t, sensor_data_t> get_sensor_data_single_socket(void* buf, const std::set<occ_sensor_t>& requested_sensors, const int socket_num)
+{
+    std::map<occ_sensor_t, sensor_data_t> values_by_sensor;
+    auto sensors_by_occ_name = get_sensors_by_occ_name(requested_sensors);
+
+    // note: apply offset for current socket
+    // this looks a little strange, so let me elaborate briefly:
+    // cast buf to uint8_t, so any addition by operator+ is in byte
+    // then add the required offset and cast to final type
+    struct occ_sensor_data_header* hb = (struct occ_sensor_data_header*)((uint8_t*)buf + socket_num * OCC_SENSOR_DATA_BLOCK_SIZE);
+    struct occ_sensor_name* md = (struct occ_sensor_name*)((uint64_t)hb + be32toh(hb->names_offset));
+
+    // iterate over all sensors
+    for (int i = 0; i < be16toh(hb->nr_sensors); i++) {
+        // check if current sensor is in requested_sensors
+        if (sensors_by_occ_name.find(md[i].name) != sensors_by_occ_name.end()) {
+            for (const auto& sensor : sensors_by_occ_name[md[i].name]) {
+                if (sensor.occ_num != socket_num) {
+                    // skip all sensors not on current chip
+                    continue;
+                }
+
+                values_by_sensor[sensor] = {
+                    .timestamp = read_occ_sensor(hb, be32toh(md[i].reading_offset), SENSOR_TIMESTAMP),
+                    .sample = static_cast<double>(be32toh(md[i].scale_factor) * get_sample(hb, &md[i])),
+                    .accumulator = read_occ_sensor(hb, be32toh(md[i].reading_offset), SENSOR_ACCUMULATOR),
+                    .update_tag = static_cast<uint32_t>(read_occ_sensor(hb, be32toh(md[i].reading_offset), SENSOR_UPDATE_TAG)),
+                };
+            }
+        }
+    }
+
+    return values_by_sensor;
+}
+
+std::map<occ_sensor_t, sensor_data_t> get_sensor_data(void* buf, const std::set<occ_sensor_t>& requested_sensors, const int socket_count)
+{
+    std::map<occ_sensor_t, sensor_data_t> values_by_sensor;
+
+    // iterate over all sockets
+    for (size_t socket_num = 0; socket_num < socket_count; socket_num++) {
+        for (const auto it : get_sensor_data_single_socket(buf, requested_sensors, socket_num)) {
+            values_by_sensor[it.first] = it.second;
+        }
+    }
+
+    if (requested_sensors.size() != values_by_sensor.size()) {
+        throw std::runtime_error(
+            "could not find all sensors in extraced file (expected: " +
+            std::to_string(requested_sensors.size()) +
+            ", got: " + std::to_string(values_by_sensor.size()) + ")");
+    }
+
+    return values_by_sensor;
+}

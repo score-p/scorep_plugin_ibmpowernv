@@ -174,3 +174,31 @@ bool operator<(const legacy_occ_sensor_t& lhs, const legacy_occ_sensor_t& rhs)
 bool operator==(const legacy_occ_sensor_t& lhs, const legacy_occ_sensor_t& rhs) {
     return lhs.name == rhs.name && lhs.type == rhs.type && lhs.socket_num == rhs.socket_num && lhs.quantity == rhs.quantity;
 }
+
+bool operator<(const occ_sensor_t& lhs, const occ_sensor_t& rhs) {
+    if (lhs.sensor_type != rhs.sensor_type) {
+        return lhs.sensor_type < rhs.sensor_type;
+    }
+
+    return lhs.occ_num < rhs.occ_num;
+}
+
+bool operator==(const occ_sensor_t& lhs, const occ_sensor_t& rhs) {
+    return lhs.sensor_type == rhs.sensor_type && lhs.occ_num == rhs.occ_num;
+}
+
+bool operator!=(const occ_sensor_t& lhs, const occ_sensor_t& rhs) {
+    return !(lhs == rhs);
+}
+
+bool operator<(const occ_metric_t& lhs, const occ_metric_t& rhs) {
+    if (lhs.sensor != rhs.sensor) {
+        return lhs.sensor < rhs.sensor;
+    }
+
+    return lhs.sample_type < rhs.sample_type;
+}
+
+bool operator==(const occ_metric_t& lhs, const occ_metric_t& rhs) {
+    return lhs.sensor == rhs.sensor && lhs.sample_type == rhs.sample_type;
+}

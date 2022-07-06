@@ -62,7 +62,7 @@ class ibmpowernv_plugin
                                   scorep::plugin::policy::post_mortem,
                                   scorep::plugin::policy::scorep_clock,
                                   scorep::plugin::policy::per_host,
-                                  occ_sensor_policy> {
+                                  occ_metric_policy> {
 public:
     ibmpowernv_plugin()
     {
@@ -94,79 +94,48 @@ public:
     {
         check_fatal();
 
+        if ("*" != pattern) {
+            fatal("only supported pattern is '*'");
+        }
+
         std::vector<scorep::plugin::metric_property> result;
 
-        logging::debug() << "adding sensors for pattern \"" << pattern << "\"";
-
-        if ("*" == pattern) {
-            // return all metrics
-
-            // global metrics (only available on first socket)
-            for (const auto& it : legacy_occ_sensor_t::metric_properties_by_sensor_master_only) {
-                make_handle(it.second.name, it.first.name, it.first.type, it.first.socket_num, it.first.quantity);
-                result.push_back(it.second);
+        // retrieve all possible metrics
+        for (unsigned socket = 0; socket < socket_count; socket++) {
+            auto occ_sensor_types = occ_power_sensor_type_all_occs;
+            if (0 == socket) {
+                occ_sensor_types.insert(occ_power_sensor_type_master_only.begin(),
+                                        occ_power_sensor_type_master_only.end());
             }
 
-            // socket-local metrics (available on every socket)
-            for (size_t socket_num = 0; socket_num < socket_count; socket_num++) {
-                for (const auto& it : legacy_occ_sensor_t::metric_properties_by_sensor_per_socket) {
-                    auto scorep_metric = it.second;
-                    scorep_metric.name += "." + std::to_string(socket_num);
-                    // !! use socket_num from loop and not from map
-                    make_handle(scorep_metric.name, it.first.name, it.first.type, socket_num, it.first.quantity);
-                    result.push_back(scorep_metric);
+            logging::debug() << "socket " << socket << ": inserting metrics for " << occ_sensor_types.size() << " sensors";
+
+            for (const auto& sensor_type : occ_sensor_types) {
+                // build metrics for this sensor
+                occ_sensor_t sensor{sensor_type, socket};
+
+                for (const auto sample_type : occ_sensor_sample_type_common) {
+                    // metric to be recorded into trace
+                    occ_metric_t metric{sensor, sample_type};
+
+                    // result contains metric properties
+                    make_handle(metric.get_name(), metric);
+                    result.push_back(metric.get_metric_property());
                 }
             }
-
-            logging::info() << "added " << result.size() << " sensors";
-            return result;
         }
-
-        // create map: metric name -> sensor object (which will in turn be mapped to a metric object)
-        // Note: I would love to be the value type a metric_property directly, BUT THE WRAPPER IS NOT SPECIFIED TO SUPPORT THAT
-        std::map<std::string, legacy_occ_sensor_t> occ_sensors_by_name;
-
-        // global sensors
-        for (const auto& it : legacy_occ_sensor_t::metric_properties_by_sensor_master_only) {
-            occ_sensors_by_name[it.second.name] = it.first;
-        }
-        // socket-local sensors
-        for (size_t socket_num = 0; socket_num < socket_count; socket_num++) {
-            for (const auto& it : legacy_occ_sensor_t::metric_properties_by_sensor_master_only) {
-                auto scorep_metric = it.second;
-                scorep_metric.name += "." + std::to_string(socket_num);
-                auto sensor = it.first;
-                sensor.socket_num = socket_num;
-                occ_sensors_by_name[scorep_metric.name] = sensor;
-            }
-        }
-
-        // iterate over items in comma-seperated list
-        std::stringstream comma_separated_list(pattern);
-        std::string list_entry;
-        while (std::getline(comma_separated_list, list_entry, ',')) {
-            if (occ_sensors_by_name.find(list_entry) == occ_sensors_by_name.end()) {
-                logging::error() << "unkown metric: " << list_entry;
-                continue;
-            }
-
-            auto occ_sensor = occ_sensors_by_name.at(list_entry);
-            auto metric_property = legacy_occ_sensor_t::metric_properties_by_sensor_master_only.at(occ_sensor);
-            make_handle(metric_property.name, occ_sensor.name, occ_sensor.type, occ_sensor.socket_num);
-            result.push_back(metric_property);
-        }
-
+        
         return result;
     }
 
-    void add_metric(const legacy_occ_sensor_t& sensor)
+    void add_metric(const occ_metric_t& metric)
     {
         check_fatal();
-        logging::debug() << "adding sensor for recording: " << sensor.name;
+        logging::debug() << "adding metric for recording: " << metric.get_name();
 
         // we just got notified that the given sensor will be recorded
         // -> init an empty buffer for it
-        value_buffers_by_sensor[sensor] = {};
+        value_buffers_by_sensor[metric.sensor] = {};
     }
 
     void start()
@@ -207,8 +176,9 @@ public:
             fatal("couldn't allocate buffer for occ sensor data");
         }
 
-        // requested sensors: all keys that have been initialized (with an empty vector)
-        std::set<legacy_occ_sensor_t> requested_sensors_set;
+        // extract keys of requested sensors map
+        // (initialized keys are requested)
+        std::set<occ_sensor_t> requested_sensors_set;
         std::transform(
             value_buffers_by_sensor.begin(), value_buffers_by_sensor.end(),
             std::inserter(requested_sensors_set, requested_sensors_set.end()),
@@ -223,7 +193,7 @@ public:
             read_file_into_buffer(raw_occ_buffer.get(), socket_count);
 
             // parse data from file & store values
-            for (const auto& it : get_sensor_values(raw_occ_buffer.get(), requested_sensors_set, socket_count)) {
+            for (const auto& it : get_sensor_data(raw_occ_buffer.get(), requested_sensors_set, socket_count)) {
                 value_buffers_by_sensor[it.first].push_back(it.second);
             }
 
@@ -237,80 +207,63 @@ public:
     }
 
     template <typename Cursor>
-    void get_all_values(const legacy_occ_sensor_t& sensor, Cursor& c)
+    void get_all_values(const occ_metric_t& metric, Cursor& c)
     {
+        legacy_occ_sensor_t sensor;
         check_fatal();
 
         if (running) {
-            fatal(
-                "can't extract values while plugin is running, will produce "
-                "duplicate data points");
+            fatal("can't extract values while plugin is running, will produce "
+                  "duplicate data points");
         }
 
-        if (value_buffers_by_sensor.find(sensor) == value_buffers_by_sensor.end()) {
+        if (value_buffers_by_sensor.find(metric.sensor) == value_buffers_by_sensor.end()) {
             logging::error() << "sensor not recorded: " << sensor.name;
             throw std::runtime_error("unkown sensor requested");
         }
 
-        if (times_.size() != value_buffers_by_sensor.at(sensor).size()) {
+        if (times_.size() != value_buffers_by_sensor.at(metric.sensor).size()) {
             logging::error()
                 << "check failed: value not for each time point recorded";
             throw std::runtime_error(
-                "can't associate recorded values -> time points");
+                                     "can't associate recorded values -> time points");
         }
 
-        // write buffered measurements for given sensor
-        if (occ_sensor_sample_type::acc_derivative == sensor.type) {
-            if (sensor.quantity == "W")
-            {
-                // derive actual value from acc
-                double last_acc = value_buffers_by_sensor[sensor][0].acc_raw;
-                for (int i = 0; i < times_.size(); i++) {
-                    double current_acc = value_buffers_by_sensor[sensor][i].acc_raw;
-                    if (current_acc > last_acc) {
-                        // only act on change & no overflow (which happens after 2^64s = ~416 days, but never trust input)
-                        // "update_tag" describes the (total) number of samples present in the acc -> extract delta
-                        double delta_samples = value_buffers_by_sensor[sensor][i].update_tag - value_buffers_by_sensor[sensor][i-1].update_tag;
-                        double power = (current_acc - last_acc) / delta_samples;
-                        c.write(times_[i], power);
-                    }
-                    last_acc = current_acc;
-                }
-            } else if (sensor.quantity == "J")
-            {
-                double first_acc = value_buffers_by_sensor[sensor][0].acc_raw;
-                for (int i = 0; i < times_.size(); i++) {
-                    double current_acc = value_buffers_by_sensor[sensor][i].acc_raw;
-                    if (current_acc > first_acc) {
-                        // only act on change & no overflow (which happens after 2^64s = ~416 days, but never trust input)
-                        // "update_tag" describes the (total) number of samples present in the acc -> extract delta
-                        double delta_samples = value_buffers_by_sensor[sensor][i].update_tag - value_buffers_by_sensor[sensor][0].update_tag;
-                        std::chrono::duration<double> delta_time = system_times_[i] - system_times_[0];
-                        double energy = (current_acc - first_acc) / delta_samples * delta_time.count();
-                        c.write(times_[i], energy);
-                    }
-                }
-            }
-        } else {
-            // normal sensor -> just copy value
+        if (occ_sensor_sample_type::sample == metric.sample_type ||
+            occ_sensor_sample_type::timestamp == metric.sample_type ||
+            occ_sensor_sample_type::update_tag == metric.sample_type) {
             for (int i = 0; i < times_.size(); i++) {
 
-                switch(sensor.get_scorep_type()) {
-                case SCOREP_METRIC_VALUE_DOUBLE:
-                    c.write(times_[i], value_buffers_by_sensor[sensor][i].fp64);
+                switch (metric.sample_type) {
+                case occ_sensor_sample_type::sample:
+                    c.write(times_[i], value_buffers_by_sensor[metric.sensor][i].sample);
                     break;
-
-                case SCOREP_METRIC_VALUE_INT64:
-                    c.write(times_[i], value_buffers_by_sensor[sensor][i].int_signed);
+                    
+                case occ_sensor_sample_type::timestamp:
+                    c.write(times_[i], value_buffers_by_sensor[metric.sensor][i].timestamp);
                     break;
-
-                case SCOREP_METRIC_VALUE_UINT64:
-                    c.write(times_[i], value_buffers_by_sensor[sensor][i].int_unsigned);
+                    
+                case occ_sensor_sample_type::update_tag:
+                    c.write(times_[i], static_cast<uint64_t>(value_buffers_by_sensor[metric.sensor][i].update_tag));
                     break;
-
-                default:
-                    throw std::runtime_error("unidentified type detected: " + std::to_string(sensor.get_scorep_type()));
                 }
+            }
+        }
+
+        // power from energy
+        if (occ_sensor_sample_type::acc_derivative == metric.sample_type) {
+            // derive actual value from acc
+            double last_acc = value_buffers_by_sensor[metric.sensor][0].accumulator;
+            for (int i = 0; i < times_.size(); i++) {
+                double current_acc = value_buffers_by_sensor[metric.sensor][i].accumulator;
+                if (current_acc > last_acc) {
+                    // only act on change & no overflow (which happens after 2^64s = ~416 days, but never trust input)
+                    // "update_tag" describes the (total) number of samples present in the acc -> extract delta
+                    double delta_samples = value_buffers_by_sensor[metric.sensor][i].update_tag - value_buffers_by_sensor[metric.sensor][i-1].update_tag;
+                    double power = (current_acc - last_acc) / delta_samples;
+                    c.write(times_[i], power);
+                }
+                last_acc = current_acc;
             }
         }
     }
@@ -335,7 +288,7 @@ private:
     /// file descriptor for the opened occ_inband_sensors file
     int occ_file_fd;
     /// recorded values for each sensor
-    std::map<legacy_occ_sensor_t, std::vector<all_sample_data>> value_buffers_by_sensor;
+    std::map<occ_sensor_t, std::vector<sensor_data_t>> value_buffers_by_sensor;
     /// used to convert times
     scorep::chrono::time_convert<> convert;
     /// number of sockets to read from
