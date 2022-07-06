@@ -229,22 +229,25 @@ public:
                                      "can't associate recorded values -> time points");
         }
 
-        if (occ_sensor_sample_type::sample == metric.sample_type ||
-            occ_sensor_sample_type::timestamp == metric.sample_type ||
+        if (occ_sensor_sample_type::sample == metric.sample_type) {
+            for (int i = 0; i < times_.size(); i++) {
+                c.write(times_[i], value_buffers_by_sensor[metric.sensor][i].sample);
+            }
+        }
+
+        if (occ_sensor_sample_type::timestamp == metric.sample_type ||
             occ_sensor_sample_type::update_tag == metric.sample_type) {
             for (int i = 0; i < times_.size(); i++) {
-
+                // set relative to first value
                 switch (metric.sample_type) {
-                case occ_sensor_sample_type::sample:
-                    c.write(times_[i], value_buffers_by_sensor[metric.sensor][i].sample);
-                    break;
-                    
                 case occ_sensor_sample_type::timestamp:
-                    c.write(times_[i], value_buffers_by_sensor[metric.sensor][i].timestamp);
+                    c.write(times_[i],
+                            value_buffers_by_sensor[metric.sensor][i].timestamp - value_buffers_by_sensor[metric.sensor][0].timestamp);
                     break;
                     
                 case occ_sensor_sample_type::update_tag:
-                    c.write(times_[i], value_buffers_by_sensor[metric.sensor][i].update_tag);
+                    c.write(times_[i],
+                            value_buffers_by_sensor[metric.sensor][i].update_tag - value_buffers_by_sensor[metric.sensor][0].update_tag);
                     break;
                 }
             }
