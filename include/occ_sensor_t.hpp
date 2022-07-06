@@ -261,11 +261,17 @@ struct occ_metric_t {
     scorep::plugin::metric_property get_metric_property() const {
         scorep::plugin::metric_property mp(get_name(), get_description(), get_unit());
 
+        // only override defaults if known
         if (occ_sensor_sample_type::acc_derivative == sample_type) {
             mp.mode = SCOREP_METRIC_MODE_ABSOLUTE_LAST;
         }
 
         mp.type = SCOREP_METRIC_VALUE_DOUBLE;
+        if (occ_sensor_sample_type::timestamp == sample_type ||
+            occ_sensor_sample_type::update_tag == sample_type) {
+            mp.type = SCOREP_METRIC_VALUE_UINT64;
+        }
+
         return mp;
     };
 };

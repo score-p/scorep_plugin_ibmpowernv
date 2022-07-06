@@ -68,7 +68,7 @@ struct sensor_data_t {
     uint64_t accumulator;
 
     /// number of samples stored in accumulator
-    uint32_t update_tag;
+    uint64_t update_tag;
 };
 using sensor_data_t = struct sensor_data_t;
 

@@ -195,9 +195,9 @@ static std::map<occ_sensor_t, sensor_data_t> get_sensor_data_single_socket(void*
 
                 values_by_sensor[sensor] = {
                     .timestamp = read_occ_sensor(hb, be32toh(md[i].reading_offset), SENSOR_TIMESTAMP),
-                    .sample = static_cast<double>(be32toh(md[i].scale_factor) * get_sample(hb, &md[i])),
+                    .sample = static_cast<double>(get_occ_scale_as_fp(be32toh(md[i].scale_factor)) * get_sample(hb, &md[i])),
                     .accumulator = read_occ_sensor(hb, be32toh(md[i].reading_offset), SENSOR_ACCUMULATOR),
-                    .update_tag = static_cast<uint32_t>(read_occ_sensor(hb, be32toh(md[i].reading_offset), SENSOR_UPDATE_TAG)),
+                    .update_tag = read_occ_sensor(hb, be32toh(md[i].reading_offset), SENSOR_UPDATE_TAG),
                 };
             }
         }

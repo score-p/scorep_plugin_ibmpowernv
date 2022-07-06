@@ -244,7 +244,7 @@ public:
                     break;
                     
                 case occ_sensor_sample_type::update_tag:
-                    c.write(times_[i], static_cast<uint64_t>(value_buffers_by_sensor[metric.sensor][i].update_tag));
+                    c.write(times_[i], value_buffers_by_sensor[metric.sensor][i].update_tag);
                     break;
                 }
             }
