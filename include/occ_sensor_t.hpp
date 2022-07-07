@@ -276,6 +276,37 @@ struct occ_metric_t {
 
         return mp;
     };
+
+    /**
+     * get all supported metrics
+     * create metrics for given socket count
+     * @param socket_count number of sockets to generate metrics for
+     * @return possible metrics
+     */
+    static std::vector<occ_metric_t> get_all(unsigned socket_count) {
+        std::vector<occ_metric_t> result;
+
+        for (unsigned socket = 0; socket < socket_count; socket++) {
+            auto occ_sensor_types = occ_power_sensor_type_all_occs;
+            if (0 == socket) {
+                occ_sensor_types.insert(occ_power_sensor_type_master_only.begin(),
+                                        occ_power_sensor_type_master_only.end());
+            }
+
+            for (const auto& sensor_type : occ_sensor_types) {
+                // build metrics for this sensor
+                occ_sensor_t sensor{sensor_type, socket};
+
+                for (const auto sample_type : occ_sensor_sample_type_common) {
+                    // metric to be recorded into trace
+                    occ_metric_t metric{sensor, sample_type};
+                    result.push_back(metric);
+                }
+            }
+        }
+
+        return result;
+    }
 };
 using occ_metric_t = struct occ_metric_t;
 

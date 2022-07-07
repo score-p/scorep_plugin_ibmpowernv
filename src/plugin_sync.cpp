@@ -82,27 +82,14 @@ std::vector<scorep::plugin::metric_property> ibmpowernv_sync_plugin::get_metric_
 
     std::vector<scorep::plugin::metric_property> result;
 
-    // global metrics (only available on first socket)
-    for (const auto& it : legacy_occ_sensor_t::metric_properties_by_sensor_master_only) {
-        auto& handle = make_handle(it.second.name, it.first.name, it.first.type,
-                                   it.first.socket_num, it.first.quantity);
-        result.push_back(it.second);
-        requested_sensors_set.insert(handle);
+    // retrieve all possible metrics
+    for (const auto& metric : occ_metric_t::get_all(socket_count)) {
+        // result contains metric properties
+        auto& handle = make_handle(metric.get_name(), metric);
+        result.push_back(metric.get_metric_property());
+        requested_sensors_set.insert(metric.sensor);
     }
-
-    // socket-local metrics (available on every socket)
-    for (size_t socket_num = 0; socket_num < socket_count; socket_num++) {
-        for (const auto& it : legacy_occ_sensor_t::metric_properties_by_sensor_per_socket) {
-            auto scorep_metric = it.second;
-            scorep_metric.name += "." + std::to_string(socket_num);
-            // !! use socket_num from loop and not from map
-            auto& handle = make_handle(scorep_metric.name, it.first.name,
-                                       it.first.type, socket_num, it.first.quantity);
-            result.push_back(scorep_metric);
-            requested_sensors_set.insert(handle);
-        }
-    }
-
+        
     logging::info() << "added " << result.size() << " sensors";
     metric_properties_added = true;
 
@@ -114,22 +101,22 @@ std::vector<scorep::plugin::metric_property> ibmpowernv_sync_plugin::get_metric_
     }
     read_file_into_buffer(raw_occ_buffer.get(), socket_count);
     init_measurement_data =
-        get_sensor_values(raw_occ_buffer.get(), requested_sensors_set, socket_count);
+        get_sensor_data(raw_occ_buffer.get(), requested_sensors_set, socket_count);
     init_measurement = std::chrono::steady_clock::now();
     last_measurement_data = init_measurement_data;
 
     return result;
 }
 
-void ibmpowernv_sync_plugin::add_metric(const legacy_occ_sensor_t& sensor)
+void ibmpowernv_sync_plugin::add_metric(const occ_metric_t& metric)
 {
     logging::trace() << "add_metric called";
     check_fatal();
-    logging::debug() << "adding sensor for recording: " << sensor;
+    logging::debug() << "adding metric for recording: " << metric.get_name();
 }
 
 template <typename Proxy>
-void ibmpowernv_sync_plugin::get_current_value(const legacy_occ_sensor_t& sensor, Proxy& p)
+void ibmpowernv_sync_plugin::get_current_value(const occ_metric_t& metric, Proxy& p)
 {
     logging::trace() << "get_current_value called";
     check_fatal();
@@ -153,74 +140,49 @@ void ibmpowernv_sync_plugin::get_current_value(const legacy_occ_sensor_t& sensor
         // read occ file
         read_file_into_buffer(raw_occ_buffer.get(), socket_count);
 
-        current_measurement_data = get_sensor_values(
+        last_measurement_data = current_measurement_data;
+
+        current_measurement_data = get_sensor_data(
             raw_occ_buffer.get(), requested_sensors_set, socket_count);
         current_measurement = std::chrono::steady_clock::now();
     }
 
-    if (sensor.type == occ_sensor_sample_type::acc_derivative) {
-        if (sensor.quantity == "W") {
-            auto acc_diff = current_measurement_data[sensor].acc_raw -
-                            last_measurement_data[sensor].acc_raw;
-            auto sample_diff = current_measurement_data[sensor].update_tag -
-                               last_measurement_data[sensor].update_tag;
-            double power = acc_diff / sample_diff;
-
-            logging::trace()
-                << sensor << " = "
-                << " current: " << current_measurement_data[sensor].acc_raw
-                << ":" << current_measurement_data[sensor].update_tag
-                << " last: " << last_measurement_data[sensor].acc_raw << ":"
-                << last_measurement_data[sensor].acc_raw << " power: " << power;
-
-            last_measurement_data[sensor] = current_measurement_data[sensor];
-
-            p.write(power); // avg power since last event for this sensor
+    if (occ_sensor_sample_type::sample == metric.sample_type) {
+        p.write(current_measurement_data[metric.sensor].sample);
+    } else if (occ_sensor_sample_type::timestamp == metric.sample_type) {
+        p.write(current_measurement_data[metric.sensor].timestamp);
+    } else if (occ_sensor_sample_type::update_tag == metric.sample_type) {
+        p.write(current_measurement_data[metric.sensor].update_tag);
+    } else if (occ_sensor_sample_type::acc_derivative == metric.sample_type) {
+        auto acc_diff = current_measurement_data[metric.sensor].accumulator -
+            last_measurement_data[metric.sensor].accumulator;
+        auto sample_diff = current_measurement_data[metric.sensor].update_tag -
+            last_measurement_data[metric.sensor].update_tag;
+        if (0 == sample_diff) {
+            // this shouldn't occur, power is unkown, just report 0
+            p.write(static_cast<uint64_t>(0));
+            return;
         }
-        else if (sensor.quantity == "J") {
-            auto acc_diff = current_measurement_data[sensor].acc_raw -
-                            init_measurement_data[sensor].acc_raw;
-            auto sample_diff = current_measurement_data[sensor].update_tag -
-                               init_measurement_data[sensor].update_tag;
-            std::chrono::duration<double> time_diff = current_measurement - init_measurement;
-            double energy = acc_diff / sample_diff * time_diff.count();
 
-            logging::trace()
-                << sensor << " = "
-                << " current: " << current_measurement_data[sensor].acc_raw
-                << ":" << current_measurement_data[sensor].update_tag
-                << " time: " << time_diff.count() << "s energy: " << energy;
-
-            p.write(energy); // energy since the beginning
+        double power = acc_diff / sample_diff;
+        p.write(power);
+    } else if (occ_sensor_sample_type::energy == metric.sample_type) {
+        // idea: compute avg power per start, scale using wall time
+        // (rationale: OCC timer might be inaccurate)
+        auto acc_diff = current_measurement_data[metric.sensor].accumulator -
+            init_measurement_data[metric.sensor].accumulator;
+        auto sample_diff = current_measurement_data[metric.sensor].update_tag -
+            init_measurement_data[metric.sensor].update_tag;
+        if (0 == sample_diff) {
+            p.write(static_cast<uint64_t>(0));
+            return;
         }
-        else {
-            throw std::runtime_error("unkonw quantity");
-        }
-    }
-    else {
-        switch (sensor.get_scorep_type()) {
-        case SCOREP_METRIC_VALUE_DOUBLE:
-            logging::trace()
-                << sensor << " --> fp64: " << current_measurement_data[sensor].fp64;
-            p.write(current_measurement_data[sensor].fp64);
-            break;
 
-        case SCOREP_METRIC_VALUE_INT64:
-            logging::trace() << sensor << " --> int_signed: "
-                             << current_measurement_data[sensor].int_signed;
-            p.write(current_measurement_data[sensor].int_signed);
-            break;
-
-        case SCOREP_METRIC_VALUE_UINT64:
-            logging::trace() << sensor << " --> int_unsigned: "
-                             << current_measurement_data[sensor].int_unsigned;
-            p.write(current_measurement_data[sensor].int_unsigned);
-            break;
-
-        default:
-            throw std::runtime_error("unidentified type detected: " +
-                                     std::to_string(sensor.get_scorep_type()));
-        }
+        std::chrono::duration<double> time_diff = current_measurement - init_measurement;
+        double energy = time_diff.count() * acc_diff / sample_diff ;
+        p.write(energy);
+    } else {
+        throw std::runtime_error("unknown metric type");
     }
 }
 

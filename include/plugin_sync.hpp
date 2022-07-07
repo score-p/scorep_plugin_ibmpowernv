@@ -65,14 +65,14 @@ class ibmpowernv_sync_plugin
                                   scorep::plugin::policy::scorep_clock,
                                   scorep::plugin::policy::per_thread,
                                   scorep::plugin::policy::synchronize,
-                                  occ_sensor_policy> {
+                                  occ_metric_policy> {
 public:
     ibmpowernv_sync_plugin();
 
     std::vector<scorep::plugin::metric_property> get_metric_properties(const std::string& pattern);
-    void add_metric(const legacy_occ_sensor_t& sensor);
+    void add_metric(const occ_metric_t& metric);
     template <typename Proxy>
-    void get_current_value(const legacy_occ_sensor_t& sensor, Proxy& p);
+    void get_current_value(const occ_metric_t& metric, Proxy& p);
     void synchronize(bool is_responsible, SCOREP_MetricSynchronizationMode sync_mode);
 
 private:
@@ -85,23 +85,20 @@ private:
     /// file descriptor for the opened occ_inband_sensors file
     int occ_file_fd;
     /// all sensors
-    std::set<legacy_occ_sensor_t> requested_sensors_set;
+    std::set<occ_sensor_t> requested_sensors_set;
 
     // initial measurement data
-    std::map<legacy_occ_sensor_t, all_sample_data> init_measurement_data;
+    std::map<occ_sensor_t, sensor_data_t> init_measurement_data;
     std::chrono::steady_clock::time_point init_measurement =
         std::chrono::steady_clock::now();
 
     /// last measurment data, only filled for acc_derivative metrics
-    std::map<legacy_occ_sensor_t, all_sample_data> last_measurement_data;
-    /// timestamp of last_measurement_data
-    std::map<legacy_occ_sensor_t, std::chrono::steady_clock::time_point> last_measurement;
+    std::map<occ_sensor_t, sensor_data_t> last_measurement_data;
 
-    /// current measurment data, used for returning cached results
-    std::map<legacy_occ_sensor_t, all_sample_data> current_measurement_data;
     /// timestamp of current_measurement_data
-    std::chrono::steady_clock::time_point current_measurement =
-        std::chrono::steady_clock::now();
+    std::chrono::steady_clock::time_point current_measurement = std::chrono::steady_clock::now();
+    /// current measurment data, used for returning cached results
+    std::map<occ_sensor_t, sensor_data_t> current_measurement_data;
 
     /// number of sockets to read from
     std::atomic<int> socket_count = 2;
