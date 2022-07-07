@@ -45,11 +45,8 @@
 
 const std::map<occ_sensor_sample_type, std::string> name_by_occ_sensor_sample_type = {
     {sample, "sample"},
-    {acc, "acc"},
     {timestamp, "timestamp"},
     {update_tag, "update_tag"},
-    {acc_raw, "acc_raw"},
-    {acc_raw_freq, "acc_raw_freq"},
     {acc_derivative, "acc_derivative"},
 };
 

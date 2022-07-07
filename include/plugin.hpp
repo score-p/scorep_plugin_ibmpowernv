@@ -45,6 +45,7 @@
 #include <thread>
 #include <unistd.h>
 #include <vector>
+#include <ratio>
 
 #include <scorep/SCOREP_MetricTypes.h>
 #include <scorep/plugin/plugin.hpp>
@@ -212,6 +213,7 @@ public:
         legacy_occ_sensor_t sensor;
         check_fatal();
 
+        // error checks
         if (running) {
             fatal("can't extract values while plugin is running, will produce "
                   "duplicate data points");
@@ -225,36 +227,25 @@ public:
         if (times_.size() != value_buffers_by_sensor.at(metric.sensor).size()) {
             logging::error()
                 << "check failed: value not for each time point recorded";
-            throw std::runtime_error(
-                                     "can't associate recorded values -> time points");
+            throw std::runtime_error("can't associate recorded values -> time points");
         }
 
+        // actual data write
         if (occ_sensor_sample_type::sample == metric.sample_type) {
             for (int i = 0; i < times_.size(); i++) {
                 c.write(times_[i], value_buffers_by_sensor[metric.sensor][i].sample);
             }
-        }
-
-        if (occ_sensor_sample_type::timestamp == metric.sample_type ||
-            occ_sensor_sample_type::update_tag == metric.sample_type) {
+        } else if (occ_sensor_sample_type::timestamp == metric.sample_type) {
             for (int i = 0; i < times_.size(); i++) {
                 // set relative to first value
-                switch (metric.sample_type) {
-                case occ_sensor_sample_type::timestamp:
-                    c.write(times_[i],
-                            value_buffers_by_sensor[metric.sensor][i].timestamp - value_buffers_by_sensor[metric.sensor][0].timestamp);
-                    break;
-                    
-                case occ_sensor_sample_type::update_tag:
-                    c.write(times_[i],
-                            value_buffers_by_sensor[metric.sensor][i].update_tag - value_buffers_by_sensor[metric.sensor][0].update_tag);
-                    break;
-                }
+                c.write(times_[i], value_buffers_by_sensor[metric.sensor][i].timestamp - value_buffers_by_sensor[metric.sensor][0].timestamp);
             }
-        }
-
-        // power from energy
-        if (occ_sensor_sample_type::acc_derivative == metric.sample_type) {
+        } else if (occ_sensor_sample_type::update_tag == metric.sample_type) {
+            for (int i = 0; i < times_.size(); i++) {
+                c.write(times_[i], value_buffers_by_sensor[metric.sensor][i].update_tag - value_buffers_by_sensor[metric.sensor][0].update_tag);
+            }
+        } else if (occ_sensor_sample_type::acc_derivative == metric.sample_type) {
+            // power from energy
             // derive actual value from acc
             double last_acc = value_buffers_by_sensor[metric.sensor][0].accumulator;
             for (int i = 0; i < times_.size(); i++) {
@@ -268,6 +259,26 @@ public:
                 }
                 last_acc = current_acc;
             }
+        } else if (occ_sensor_sample_type::energy == metric.sample_type) {
+            for (int i = 0; i < times_.size(); i++) {
+                // compute power from energy, then scale using wall time
+                double total_acc_delta = value_buffers_by_sensor[metric.sensor][i].accumulator - value_buffers_by_sensor[metric.sensor][0].accumulator;
+                double total_update_tag_delta = value_buffers_by_sensor[metric.sensor][i].update_tag - value_buffers_by_sensor[metric.sensor][0].update_tag;
+                double total_time_delta_s =
+                    std::chrono::duration_cast<
+                        std::chrono::duration<
+                            double, std::ratio<1>>>(system_times_[i] - system_times_[0]).count();
+
+                if (0 == total_update_tag_delta) {
+                    c.write(times_[i], static_cast<uint64_t>(0));
+                } else {
+                    double avg_power = total_acc_delta / total_update_tag_delta;
+                    double energy = avg_power * total_time_delta_s;
+                    c.write(times_[i], energy);
+                }
+            }
+        } else {
+            throw std::runtime_error("unkown metric: " + metric.get_name());
         }
     }
 

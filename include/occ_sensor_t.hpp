@@ -41,12 +41,10 @@
 /// describes, which value from a sensor record should be recorded
 enum occ_sensor_sample_type {
     sample,
-    acc,
     timestamp,
     update_tag,
-    acc_raw,
-    acc_raw_freq,
     acc_derivative,
+    energy,
 };
 
 // TODO enum class for occ_sensor_sample_type
@@ -57,6 +55,7 @@ const std::set<occ_sensor_sample_type> occ_sensor_sample_type_common = {
     occ_sensor_sample_type::timestamp,
     occ_sensor_sample_type::update_tag,
     occ_sensor_sample_type::acc_derivative,
+    occ_sensor_sample_type::energy,
 };
 
 /// str names for occ_sensor_sample_type, used for debugging output
@@ -229,6 +228,7 @@ struct occ_metric_t {
             {occ_sensor_sample_type::timestamp, "timestamp"},
             {occ_sensor_sample_type::update_tag, "update_tag"},
             {occ_sensor_sample_type::acc_derivative, "power_from_energy"},
+            {occ_sensor_sample_type::energy, "energy"},
         };
 
         return sensor.get_name() + "." + name_by_sample_type.at(sample_type);
@@ -241,6 +241,7 @@ struct occ_metric_t {
             {occ_sensor_sample_type::timestamp, "OCC-reported timestamp of last update (512 MHz-based)"},
             {occ_sensor_sample_type::update_tag, "number of samples in accumulator"},
             {occ_sensor_sample_type::acc_derivative, "power derived from accumulator"},
+            {occ_sensor_sample_type::energy, "total energy consumed since start"},
         };
 
         return sensor.get_description() + ": " + desc_by_sample_type.at(sample_type);
@@ -253,6 +254,7 @@ struct occ_metric_t {
             {occ_sensor_sample_type::timestamp, "#"},
             {occ_sensor_sample_type::update_tag, "#"},
             {occ_sensor_sample_type::acc_derivative, "W"},
+            {occ_sensor_sample_type::energy, "J"},
         };
 
         return unit_by_sample_type.at(sample_type);

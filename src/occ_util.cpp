@@ -94,25 +94,6 @@ static std::map<legacy_occ_sensor_t, all_sample_data> get_sensor_values_single_s
                     values_by_sensor[sensor].fill((double) (sample * get_occ_scale_as_fp(scale)));
                     break;
 
-                case occ_sensor_sample_type::acc:
-                    // accumulator
-                    energy = read_occ_sensor(hb, be32toh(md[i].reading_offset), SENSOR_ACCUMULATOR);
-                    freq = be32toh(md[i].freq);
-                    values_by_sensor[sensor].fill((double) (energy / get_occ_scale_as_fp(freq)));
-                    break;
-
-                case occ_sensor_sample_type::acc_raw:
-                    // raw accumulator value
-                    energy = read_occ_sensor(hb, be32toh(md[i].reading_offset), SENSOR_ACCUMULATOR);
-                    values_by_sensor[sensor].fill((uint64_t) energy);
-                    break;
-
-                case occ_sensor_sample_type::acc_raw_freq:
-                    // reported sampling frequency for accumularor
-                    freq = get_occ_scale_as_fp(be32toh(md[i].freq));
-                    values_by_sensor[sensor].fill((double) freq);
-                    break;
-
                 case occ_sensor_sample_type::timestamp:
                     // timestamp
                     timestamp = read_occ_sensor(hb, be32toh(md[i].reading_offset), SENSOR_TIMESTAMP);
