@@ -35,37 +35,11 @@
 #include <string>
 #include <stdexcept>
 
-#define OCC_PLUGIN_ADD_SENSOR_DEFAULT(occ_str, scorep_str, desc, unit) \
-    {{occ_str, occ_sensor_sample_type::sample, 0},\
-     metric_type_constructable(scorep_str, desc, unit, SCOREP_METRIC_MODE_ABSOLUTE_POINT, SCOREP_METRIC_VALUE_DOUBLE)},\
-    {{occ_str, occ_sensor_sample_type::acc_derivative, 0, "J"},\
-     metric_type_constructable(scorep_str "_energy", desc " (energy)", "J", SCOREP_METRIC_MODE_ACCUMULATED_LAST, SCOREP_METRIC_VALUE_DOUBLE)},\
-    {{occ_str, occ_sensor_sample_type::acc_derivative, 0},\
-     metric_type_constructable(scorep_str "_from_energy", desc " (derived from accumulator)", unit, SCOREP_METRIC_MODE_ABSOLUTE_LAST, SCOREP_METRIC_VALUE_DOUBLE)}
-
 const std::map<occ_sensor_sample_type, std::string> name_by_occ_sensor_sample_type = {
     {sample, "sample"},
     {timestamp, "timestamp"},
     {update_tag, "update_tag"},
     {acc_derivative, "acc_derivative"},
-};
-
-/// helper class to allow setting all attributes of scorep::plugin::metric_property from constructor
-class metric_type_constructable : public scorep::plugin::metric_property {
-public:
-    metric_type_constructable(std::string name,
-                              std::string description,
-                              std::string unit,
-                              SCOREP_MetricMode _mode = SCOREP_METRIC_MODE_ABSOLUTE_POINT,
-                              SCOREP_MetricValueType _type = SCOREP_METRIC_VALUE_DOUBLE,
-                              SCOREP_MetricBase _base = SCOREP_METRIC_BASE_DECIMAL,
-                              int64_t _exponent = 0) : scorep::plugin::metric_property(name, description, unit) {
-        // note: set here, because parent class' attributes can't be set from initializer lists
-        mode = _mode;
-        type = _type;
-        base = _base;
-        exponent = _exponent;
-    }
 };
 
 bool operator<(const occ_sensor_t& lhs, const occ_sensor_t& rhs) {
