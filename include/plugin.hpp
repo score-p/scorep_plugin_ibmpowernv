@@ -192,7 +192,6 @@ public:
     template <typename Cursor>
     void get_all_values(const occ_metric_t& metric, Cursor& c)
     {
-        legacy_occ_sensor_t sensor;
         check_fatal();
 
         // error checks
@@ -202,7 +201,7 @@ public:
         }
 
         if (value_buffers_by_sensor.find(metric.sensor) == value_buffers_by_sensor.end()) {
-            logging::error() << "sensor not recorded: " << sensor.name;
+            logging::error() << "sensor for metric not recorded: " << metric.get_name();
             throw std::runtime_error("unkown sensor requested");
         }
 

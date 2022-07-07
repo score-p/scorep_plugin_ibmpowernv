@@ -37,24 +37,6 @@
 #include <occ_sensor_t.hpp>
 
 /**
- * struct to hold all information to reconstruct a sensor (different data types etc.)
- */
-struct all_sample_data {
-    double fp64 = 0;
-    uint64_t int_unsigned = 0;
-    int64_t int_signed = 0;
-
-    uint64_t acc_raw = 0;
-    uint64_t update_tag = 0;
-    double acc_freq = 0;
-
-    /// automatically fill values
-    void fill(uint64_t u);
-    void fill(double d);
-};
-typedef struct all_sample_data all_sample_data;
-
-/**
  * store data as provided by OCC for one sensor
  */
 struct sensor_data_t {
@@ -73,31 +55,12 @@ struct sensor_data_t {
 using sensor_data_t = struct sensor_data_t;
 
 /**
- * reorganize given sensors into map with OCC identifier (string like "PWRSYS") -> sensor(s).
- * helper used for easier lookup when iterating all available sensors.
- * @param sensors sensor to be reorganized
- * @return map: OCC identifier -> legacy sensor object
- */
-std::map<std::string, std::set<legacy_occ_sensor_t>> get_sensors_by_occid(const std::set<legacy_occ_sensor_t>& sensors);
-
-/**
  * reorganize given sensors into map with OCC name (string like "PWRSYS") -> sensor(s).
  * helper used for easier lookup when iterating all available sensors.
  * @param sensors sensor to be reorganized
  * @return map: OCC identifier -> sensor object
  */
 std::map<std::string, std::set<occ_sensor_t>> get_sensors_by_occ_name(const std::set<occ_sensor_t>& sensors);
-
-/**
- * extract a set of sensor values from given occ inband sensors file.
- * @param buf pointer to content of occ inband sensors file
- * @param requested_sensors sensor to be extracted
- * @param socket_count number of sockets to search
- * @return map: sensors type -> value from buf
- */
-std::map<legacy_occ_sensor_t, all_sample_data> get_sensor_values(void* buf,
-                                                                 const std::set<legacy_occ_sensor_t>& requested_sensors,
-                                                                 const int socket_count);
 
 /**
  * extract sensor readouts from given occ inband sensors file.

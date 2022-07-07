@@ -313,49 +313,6 @@ using occ_metric_t = struct occ_metric_t;
 bool operator<(const occ_metric_t& lhs, const occ_metric_t& rhs);
 bool operator==(const occ_metric_t& lhs, const occ_metric_t& rhs);
 
-/// contains all information required to locate a sensor and grab its value
-struct legacy_occ_sensor_t {
-    legacy_occ_sensor_t(const std::string& name, const occ_sensor_sample_type type, const size_t socket_num, const std::string& quantity="W") : name(name), type(type), socket_num(socket_num), quantity(quantity)
-    {
-    }
-    legacy_occ_sensor_t()
-    {
-    }
-
-    /// name as used in occ_inband_sensors (e.g. PWRSYS)
-    std::string name;
-    /// what part of the record to record
-    occ_sensor_sample_type type = occ_sensor_sample_type::timestamp;
-    /// socket (or "chipid") of the sensor
-    size_t socket_num = 0;
-
-    std::string quantity;
-
-    SCOREP_MetricValueType get_scorep_type() const;
-
-
-
-    /// metric properties for all supported *global* sensors (only present on first socket)
-    static const std::map<legacy_occ_sensor_t, scorep::plugin::metric_property> metric_properties_by_sensor_master_only;
-
-    /// metric properties for all supported sensors for *every* chip/socket (will be created once per socket)
-    static const std::map<legacy_occ_sensor_t, scorep::plugin::metric_property> metric_properties_by_sensor_per_socket;
-};
-typedef struct legacy_occ_sensor_t legacy_occ_sensor_t;
-
-bool operator<(const legacy_occ_sensor_t& lhs, const legacy_occ_sensor_t& rhs);
-bool operator==(const legacy_occ_sensor_t& lhs, const legacy_occ_sensor_t& rhs);
-
-inline std::ostream& operator<<(std::ostream& os, const legacy_occ_sensor_t& sensor) 
-{
-    os << sensor.name << ':' << sensor.socket_num << ':' << name_by_occ_sensor_sample_type.at(sensor.type) << ":"
-       << sensor.quantity;
-    return os;
-}
-
-template <typename T, typename Policies>
-using occ_sensor_policy = scorep::plugin::policy::object_id<legacy_occ_sensor_t, T, Policies>;
-
 template <typename T, typename Policies>
 using occ_metric_policy = scorep::plugin::policy::object_id<occ_metric_t, T, Policies>;
 
